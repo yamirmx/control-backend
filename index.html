@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Financiero Pro</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Colores Base FinTech */
+            --primario: #6366f1;      /* Indigo moderno */
+            --ingreso: #10b981;       /* Verde Esmeralda Suave */
+            --gasto: #f43f5e;         /* Rojo Coral/Sandía */
+            --prestamo: #334155;      /* Gris Pizarra oscuro */
+            
+            /* Fondos y Superficies Soft UI */
+            --fondo: #f8fafc;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: rgba(226, 232, 240, 0.8);
+            
+            /* Inputs */
+            --bg-input: #f1f5f9;
+            --border-input: transparent;
+            --bg-hover: #f1f5f9;
+            
+            /* Overlay Modal */
+            --overlay-bg: rgba(15, 23, 42, 0.4);
+
+            /* Sombras Soft UI */
+            --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.06);
+            --shadow-hover: 0 20px 40px -10px rgba(0,0,0,0.12);
+            --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+            
+            /* Transiciones globales */
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-mode {
+            --primario: #818cf8;
+            --prestamo: #f8fafc;
+            --fondo: #0f172a;    
+            --bg-card: rgba(30, 41, 59, 0.7); 
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.05);
+            --bg-input: rgba(15, 23, 42, 0.6);
+            --border-input: rgba(255, 255, 255, 0.1);
+            --bg-hover: rgba(255, 255, 255, 0.05);
+            --overlay-bg: rgba(0, 0, 0, 0.7);
+            --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.4);
+            --shadow-hover: 0 20px 40px -10px rgba(0,0,0,0.6);
+            --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; background: var(--fondo); 
+            padding: 20px; color: var(--text-main); 
+            transition: background 0.4s ease, color 0.4s ease;
+            margin: 0; min-height: 100vh;
+            padding-bottom: 100px; /* Espacio para el FAB */
+        }
+
+        .app-wrapper { max-width: 1200px; margin: 0 auto; }
+
+        /* HEADER */
+        .header-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .header-main h1 { margin: 0; color: var(--text-main); font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+        .header-main h1 span { color: var(--primario); }
+
+        .theme-toggle { 
+            background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); 
+            padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: 600; font-size: 14px;
+            transition: var(--transition); box-shadow: var(--shadow-soft); display: flex; align-items: center; gap: 8px;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        }
+        .theme-toggle:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+
+        /* TARJETAS GLOBALES */
+        .card { 
+            background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border-color); 
+            box-shadow: var(--shadow-soft); transition: var(--transition);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            overflow: hidden;
+        }
+
+        /* DASHBOARD */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .metric-card { padding: 30px 25px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; }
+        .metric-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); }
+        .metric-card h3 { margin: 0; color: var(--text-muted); font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .metric-card p { margin: 0; font-size: 38px; font-weight: 700; letter-spacing: -1.5px; }
+        
+        .val-ingreso { color: var(--ingreso); }
+        .val-gasto { color: var(--gasto); }
+        .val-deuda { color: var(--prestamo); }
+        
+        .chart-wrapper { padding: 25px; height: 350px; display: flex; justify-content: center; align-items: center; margin-bottom: 30px;}
+
+        /* MODAL (FORMULARIO FLOTANTE) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--overlay-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            z-index: 1000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: var(--transition);
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal-content {
+            background: var(--bg-card); border-radius: 24px; width: 90%; max-width: 450px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color);
+            transform: scale(0.9) translateY(20px); transition: var(--transition);
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
+
+        .modal-header { padding: 25px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { margin: 0; font-size: 18px; font-weight: 600; }
+        .btn-cerrar-modal { background: var(--bg-input); border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+        .btn-cerrar-modal:hover { background: var(--gasto); color: white; transform: rotate(90deg); }
+
+        .form-body { padding: 25px; display: flex; flex-direction: column; gap: 15px; }
+
+        .categoria-selector { display: flex; gap: 8px; margin-bottom: 5px; }
+        .btn-cat { 
+            flex: 1; padding: 12px 5px; border: 2px solid transparent; border-radius: 14px; 
+            cursor: pointer; font-weight: 600; font-size: 12px; background: var(--bg-input); 
+            color: var(--text-muted); transition: var(--transition); text-align: center;
+        }
+        .btn-cat:hover { background: var(--bg-hover); transform: translateY(-2px); }
+        
+        .btn-cat.active[data-tipo="Ingreso"] { color: white; background: var(--ingreso); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
+        .btn-cat.active[data-tipo="Gasto"] { color: white; background: var(--gasto); box-shadow: 0 8px 20px rgba(244, 63, 94, 0.3); }
+        .btn-cat.active[data-tipo="Préstamo"] { color: white; background: var(--prestamo); box-shadow: 0 8px 20px rgba(51, 65, 85, 0.3); }
+        body.dark-mode .btn-cat.active[data-tipo="Préstamo"] { color: #0f172a; } /* Fix para hacer visible el texto en modo oscuro */
+
+        input, select { 
+            padding: 14px 18px; background: var(--bg-input); color: var(--text-main); 
+            border: 1px solid var(--border-input); border-radius: 16px; font-size: 15px; 
+            outline: none; transition: var(--transition); box-shadow: var(--shadow-inner);
+            font-family: 'Inter', sans-serif; width: 100%; box-sizing: border-box;
+        }
+        input:focus, select:focus { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); background: var(--bg-card); border-color: var(--primario); }
+        
+        /* Nuevos estilos para los selectores (dropdowns) en modo oscuro */
+        body.dark-mode select {
+            background-color: var(--bg-input);
+            color: var(--text-main);
+        }
+        body.dark-mode select option {
+            background-color: #1e293b; /* Fondo oscuro sólido para las opciones */
+            color: #f1f5f9; /* Texto claro */
+        }
+
+        /* Fix para los iconos del calendario (Día y Mes) en modo oscuro */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="month"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
+        
+        body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator,
+        body.dark-mode input[type="month"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+        .contenedor-recurrente { 
+            display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 14px; 
+            color: var(--text-muted); background: var(--bg-input); padding: 14px 18px; 
+            border-radius: 16px; border: 1px solid var(--border-input); cursor: pointer; transition: var(--transition); 
+        }
+        .contenedor-recurrente:hover { background: var(--bg-hover); }
+        .contenedor-recurrente input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primario); }
+
+        button#btnProcesar { 
+            padding: 16px; background: var(--ingreso); color: white; border: none; border-radius: 16px; width: 100%;
+            cursor: pointer; font-weight: 600; font-size: 16px; margin-top: 5px; transition: var(--transition);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+        }
+        button#btnProcesar:hover:not(:disabled) { transform: translateY(-3px); filter: brightness(1.1); box-shadow: 0 15px 25px rgba(16, 185, 129, 0.4); }
+        button#btnProcesar:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* FAB (Floating Action Button) */
+        .fab-btn {
+            position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px;
+            background: linear-gradient(135deg, var(--primario), #818cf8); border: none;
+            border-radius: 50%; color: white; font-size: 32px; font-weight: 300; display: flex;
+            align-items: center; justify-content: center; cursor: pointer; z-index: 900;
+            box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4); transition: var(--transition);
+        }
+        .fab-btn:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 20px 40px rgba(99, 102, 241, 0.6); }
+
+        .header-tabla { padding: 25px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .header-tabla h2 { margin: 0; font-size: 18px; font-weight: 600; }
+        .filtros-wrapper { display: flex; gap: 10px; flex: 1; justify-content: flex-end; }
+        #buscador, #filtroMes { padding: 12px 20px; border-radius: 30px; box-shadow: none; width: auto; flex: unset; }
+        #buscador { flex: 1; max-width: 280px; }
+
+        .table-responsive { padding: 0 10px 20px 10px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+        th { color: var(--text-muted); padding: 15px 20px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; border-bottom: 1px solid var(--border-color); }
+        td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-size: 14px; font-weight: 500; }
+        
+        .txt-ingreso { color: var(--ingreso) !important; font-weight: 700; }
+        .txt-gasto { color: var(--gasto) !important; font-weight: 700; }
+        .txt-prestamo { color: var(--prestamo) !important; font-weight: 700; }
+
+        .acciones-cell { display: flex; gap: 6px; }
+        .btn-mini { 
+            width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+            border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 14px; transition: var(--transition);
+        }
+        .btn-mini:hover { transform: translateY(-3px); filter: brightness(1.1); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+        
+        .fila-detalles { display: none; }
+        .fila-detalles.abierto { display: table-row; animation: fadeInDown 0.3s ease; }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .detalle-container { padding: 0 20px 20px 20px; background: var(--bg-hover); border-radius: 0 0 16px 16px; }
+        .tabla-interior th { padding: 12px 10px; font-size: 11px; }
+        .tabla-interior td { padding: 12px 10px; color: var(--text-main); }
+        .inner-tx:hover { background: rgba(0,0,0,0.03); }
+
+        /* Ajustes específicos para el select dentro de SweetAlert2 */
+        .swal2-select.custom-swal-select {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            font-size: 14px;
+        }
+        body.dark-mode .swal2-select.custom-swal-select {
+            background-color: rgba(15, 23, 42, 0.6) !important;
+            color: #f1f5f9 !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        body.dark-mode .swal2-select.custom-swal-select option { background-color: #1e293b; color: #f1f5f9; }
+
+        /* MOBILE FIRST: Transformar tabla en Tarjetas */
+        @media (max-width: 768px) {
+            .header-tabla { flex-direction: column; align-items: flex-start; }
+            .filtros-wrapper { width: 100%; flex-direction: column; }
+            #buscador, #filtroMes { max-width: 100%; width: 100%; box-sizing: border-box; }
+            
+            thead { display: none; }
+            .table-responsive { padding: 15px; }
+            .fila-registro { 
+                display: flex; flex-direction: column; background: var(--bg-card); 
+                border: 1px solid var(--border-color); border-radius: 16px; 
+                margin-bottom: 15px; padding: 15px; box-shadow: var(--shadow-soft);
+            }
+            .fila-registro td { 
+                display: flex; justify-content: space-between; align-items: center; 
+                padding: 10px 0; border-bottom: 1px dashed var(--border-color); 
+            }
+            .fila-registro td:last-child { border-bottom: none; padding-bottom: 0; }
+            
+            .fila-registro td::before { 
+                content: attr(data-label); font-weight: 600; color: var(--text-muted); 
+                font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+            }
+            
+            .acciones-cell { display: flex; justify-content: flex-end; width: 100%; gap: 8px; margin-top: 5px; }
+            .nombre-celda { text-align: right; }
+            .nombre-celda div { display: none; } 
+            
+            .fila-detalles.abierto { display: block; margin-top: -10px; margin-bottom: 20px; }
+            .detalle-container { padding: 15px; border-radius: 16px; border: 1px solid var(--border-color); }
+            .tabla-interior thead { display: none; }
+            .inner-tx { display: flex; flex-direction: column; background: var(--bg-input); border-radius: 12px; margin-bottom: 10px; padding: 12px; }
+            .inner-tx td { display: flex; justify-content: space-between; padding: 6px 0; border: none; font-size: 13px;}
+            .inner-tx td::before { content: attr(data-label); font-weight: 600; color: var(--text-muted); font-size: 10px; text-transform: uppercase; }
+        }
+    </style>
+    <!-- Librerías Externas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <header class="header-main">
+        <h1><span>💰</span> Control Financiero <span>Pro</span></h1>
+        <button id="btnTheme" class="theme-toggle" onclick="toggleTheme()">🌙 Modo Oscuro</button>
+    </header>
+
+    <div class="dashboard-grid">
+        <div class="card metric-card">
+            <h3>Ingresos (Mes)</h3>
+            <p id="dashIngresos" class="val-ingreso" data-val="0">$0</p>
+        </div>
+        <div class="card metric-card">
+            <h3>Gastos (Mes)</h3>
+            <p id="dashGastos" class="val-gasto" data-val="0">$0</p>
+        </div>
+        <div class="card metric-card">
+            <h3>Deuda Activa</h3>
+            <p id="dashDeuda" class="val-deuda" data-val="0">$0</p>
+        </div>
+    </div>
+    
+    <div class="card chart-wrapper">
+        <canvas id="miGrafico"></canvas>
+    </div>
+
+    <div class="card table-section">
+        <div class="header-tabla">
+            <h2>Historial de Cuentas</h2>
+            <div class="filtros-wrapper">
+                <input type="month" id="filtroMes" onchange="filtrarTabla()" title="Filtrar por mes">
+                <input type="text" id="buscador" placeholder="🔍 Buscar registro..." onkeyup="filtrarTabla()">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Registro</th>
+                        <th>Estado Actual</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpoTabla"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- BOTÓN FLOTANTE FAB -->
+<button class="fab-btn" onclick="abrirModal()" title="Nuevo Movimiento">+</button>
+
+<!-- MODAL FORMULARIO (Oculto por defecto) -->
+<div id="modalFormulario" class="modal-overlay" onclick="cerrarModalAfuera(event)">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Nuevo Movimiento</h2>
+            <button class="btn-cerrar-modal" onclick="cerrarModal()">✕</button>
+        </div>
+        <div class="form-body">
+            <div class="categoria-selector">
+                <button class="btn-cat active" data-tipo="Ingreso" onclick="setCategoria('Ingreso')">INGRESO / ABONO</button>
+                <button class="btn-cat" data-tipo="Gasto" onclick="setCategoria('Gasto')">GASTO</button>
+                <button class="btn-cat" data-tipo="Préstamo" onclick="setCategoria('Préstamo')">PRÉSTAMO</button>
+            </div>
+
+            <select id="modoUsuario" onchange="toggleInputs()">
+                <option value="EXISTING">👤 Registro Existente</option>
+                <option value="NEW">➕ Nuevo Registro</option>
+            </select>
+            
+            <input type="text" id="nombreNuevo" placeholder="Nombre del nuevo registro..." style="display:none;">
+            <select id="listaCuentas"><option value="">Cargando registros...</option></select>
+            
+            <input type="text" id="montoInput" placeholder="Monto $" oninput="formatearMoneda(this)">
+            <input type="date" id="fechaInput">
+            
+            <!-- Selector de Categorías (Se ocultará en préstamos) -->
+            <select id="categoriaInput">
+                <option value="General">🏷️ General</option>
+                <option value="Comida">🍔 Comida</option>
+                <option value="Transporte">🚗 Transporte</option>
+                <option value="Vivienda">🏠 Vivienda / Servicios</option>
+                <option value="Entretenimiento">🍿 Entretenimiento</option>
+                <option value="Pago Tarjeta/Deuda">💳 Pago Tarjeta/Deuda</option>
+                <option value="Nómina/Salario">💵 Nómina/Salario</option>
+                <option value="Abono a préstamo">💸 Abono a préstamo</option>
+            </select>
+            
+            <input type="text" id="conceptoInput" placeholder="Detalles o Concepto (Opcional)">
+        
+        <!-- Contenedor ocultable según el tipo de movimiento -->
+        <div id="opcionTransferencia" style="display: none; flex-direction: column; gap: 10px; margin-top: 5px;">
+            <label class="contenedor-recurrente">
+                <input type="checkbox" id="checkTransferencia" onchange="toggleTransferencia()">
+                <span id="labelTransferencia">💳 Descontar fondos de otra cuenta</span>
+            </label>
+            <select id="cuentaOrigen" style="display: none;">
+                <option value="">-- Elige la cuenta de origen --</option>
+            </select>
+        </div>
+        
+        <label class="contenedor-recurrente">
+            <input type="checkbox" id="checkRecurrente">
+                🔄 Hacer movimiento recurrente
+            </label>
+
+            <button id="btnProcesar" onclick="procesar()">Guardar Movimiento</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = "https://control-backend-ndpz.onrender.com";
+    let categoriaSeleccionada = "Ingreso";
+    let miGrafico; 
+
+    // Códigos HEX FinTech
+    const colorIngreso = '#10b981'; 
+    const colorGasto = '#f43f5e';   
+
+    // --- Control del Modal Flotante ---
+    function abrirModal() { document.getElementById('modalFormulario').classList.add('active'); }
+    function cerrarModal() { document.getElementById('modalFormulario').classList.remove('active'); }
+    function cerrarModalAfuera(event) { if (event.target.id === 'modalFormulario') cerrarModal(); }
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+        document.getElementById('btnTheme').innerHTML = isDark ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
+        setCategoria(categoriaSeleccionada); 
+        if(miGrafico) cargar(); 
+    }
+
+    function initTheme() {
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('btnTheme').innerHTML = '☀️ Modo Claro';
+        }
+    }
+
+    function getSwalBg() { return document.body.classList.contains('dark-mode') ? '#1e293b' : '#ffffff'; }
+    function getSwalColor() { return document.body.classList.contains('dark-mode') ? '#f1f5f9' : '#1e293b'; }
+
+    function toast(msj, colorHex = "#333") {
+        let icono = 'info';
+        if (colorHex === colorIngreso) icono = 'success';
+        else if (colorHex === colorGasto) icono = 'error';
+        Swal.fire({ 
+            background: getSwalBg(), color: getSwalColor(),
+            toast: true, position: 'top-end', icon: icono, title: msj, 
+            showConfirmButton: false, timer: 3000, timerProgressBar: true
+        });
+    }
+
+    function formatearMoneda(input) {
+        let valor = input.value.replace(/[^0-9.]/g, '');
+        const partes = valor.split('.');
+        if (partes.length > 2) valor = partes[0] + '.' + partes.slice(1).join('');
+        if (valor === '') return input.value = '';
+        const tieneDecimales = valor.includes('.');
+        const enteros = partes[0] ? parseInt(partes[0], 10).toLocaleString('en-US') : '0';
+        input.value = tieneDecimales ? '$' + enteros + '.' + partes[1].substring(0, 2) : '$' + enteros;
+    }
+
+    function animarContador(id, valorFinal) {
+        const elemento = document.getElementById(id);
+        const valorActualAttr = elemento.getAttribute("data-val");
+        let valorActual = valorActualAttr ? parseFloat(valorActualAttr) : 0;
+        
+        if(valorActual === valorFinal) {
+            elemento.innerText = `$${valorFinal.toLocaleString()}`;
+            return;
+        }
+
+        const duracion = 1200; 
+        const fotogramas = 60;
+        const incremento = (valorFinal - valorActual) / (duracion / fotogramas);
+        
+        let iteracion = 0;
+        const timer = setInterval(() => {
+            valorActual += incremento;
+            iteracion++;
+            if (iteracion >= (duracion / fotogramas)) {
+                clearInterval(timer);
+                valorActual = valorFinal;
+            }
+            elemento.innerText = `$${Math.round(valorActual).toLocaleString()}`;
+        }, fotogramas);
+        
+        elemento.setAttribute("data-val", valorFinal);
+    }
+
+    function setCategoria(tipo) {
+        categoriaSeleccionada = tipo;
+        document.querySelectorAll('.btn-cat').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.btn-cat[data-tipo="${tipo}"]`).classList.add('active');
+        
+        const btn = document.getElementById('btnProcesar');
+        const isDark = document.body.classList.contains('dark-mode');
+
+        if(tipo === 'Ingreso') {
+            btn.style.background = colorIngreso; btn.style.color = 'white';
+            btn.style.boxShadow = '0 10px 20px rgba(16, 185, 129, 0.25)';
+            document.getElementById('categoriaInput').style.display = 'block';
+        } else if(tipo === 'Gasto') {
+            btn.style.background = colorGasto; btn.style.color = 'white';
+            btn.style.boxShadow = '0 10px 20px rgba(244, 63, 94, 0.25)';
+            document.getElementById('categoriaInput').style.display = 'block';
+        } else {
+            const prestamoColor = isDark ? '#f8fafc' : '#334155';
+            btn.style.background = prestamoColor;
+            btn.style.color = isDark ? '#0f172a' : 'white';
+            btn.style.boxShadow = isDark ? '0 10px 20px rgba(255, 255, 255, 0.1)' : '0 10px 20px rgba(51, 65, 85, 0.25)';
+            document.getElementById('categoriaInput').style.display = 'none'; // Ocultar categoría en préstamos
+        }
+        
+        toggleInputs(); 
+    }
+
+    function toggleInputs() {
+        const modo = document.getElementById("modoUsuario").value;
+        document.getElementById("nombreNuevo").style.display = (modo === "NEW") ? "block" : "none";
+        document.getElementById("listaCuentas").style.display = (modo === "EXISTING") ? "block" : "none";
+        
+        const opcTrans = document.getElementById("opcionTransferencia");
+        const lblTrans = document.getElementById("labelTransferencia");
+        
+        if (categoriaSeleccionada === "Ingreso") {
+            opcTrans.style.display = "none";
+            document.getElementById("checkTransferencia").checked = false;
+            toggleTransferencia();
+        } else {
+            opcTrans.style.display = "flex";
+            if(categoriaSeleccionada === "Préstamo") {
+                lblTrans.innerText = "💳 Descontar dinero prestado de otra cuenta (Ej. Nómina)";
+            } else {
+                lblTrans.innerText = "💳 Pagar este gasto usando otra cuenta (Ej. Nómina)";
+            }
+        }
+    }
+
+    function toggleTransferencia() {
+        const check = document.getElementById("checkTransferencia").checked;
+        document.getElementById("cuentaOrigen").style.display = check ? "block" : "none";
+    }
+
+    function toggleHistorial(id) {
+        const fila = document.getElementById(`detalles-${id}`);
+        fila.classList.toggle('abierto');
+    }
+
+    async function cargar() {
+        try {
+            const res = await fetch(`${API}/cuentas`);
+            let cuentas = await res.json();
+            
+            if (!Array.isArray(cuentas)) throw new Error("Respuesta no válida del servidor");
+            
+            cuentas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+            
+            const lista = document.getElementById("listaCuentas");
+            const listaOrigen = document.getElementById("cuentaOrigen");
+            lista.innerHTML = '<option value="">-- Elige un registro --</option>';
+            listaOrigen.innerHTML = '<option value="">-- Elige la cuenta de origen --</option>';
+            
+            cuentas.forEach(u => {
+                lista.innerHTML += `<option value="${u.id}">${u.nombre}</option>`;
+                listaOrigen.innerHTML += `<option value="${u.id}">${u.nombre}</option>`;
+            });
+
+            const cuerpo = document.getElementById("cuerpoTabla");
+            cuerpo.innerHTML = "";
+
+            let totalIngresosMes = 0, totalGastosMes = 0, totalDeuda = 0;
+            const mesActual = new Date().getMonth();
+            const anioActual = new Date().getFullYear();
+
+            for (const u of cuentas) {
+                const resHist = await fetch(`${API}/cuentas/${u.id}/historial`);
+                let dataHist = await resHist.json();
+                
+                if(!dataHist || !dataHist.transacciones) continue;
+
+                const transacciones = dataHist.transacciones.sort((a, b) => b.id - a.id);
+                const ultimaTx = transacciones[0]; 
+                
+                // Evitamos que crashee asegurando que buscamos el texto solo si el concepto existe
+                const esPrestamoHistorial = transacciones.some(t => t.tipo === "Préstamo" && (!t.concepto || !t.concepto.includes("[Préstamo Otorgado]")));
+                
+                let claseColor = "txt-ingreso"; 
+
+                // LÓGICA DE COLORES MATEMÁTICA PURA
+                if (u.monto === 0) {
+                    claseColor = "txt-ingreso"; 
+                } else if (esPrestamoHistorial) {
+                    claseColor = "txt-prestamo"; 
+                    totalDeuda += Math.abs(u.monto); 
+                } else if (ultimaTx) {
+                    // Si el ultimo registro es un GASTO pero dice "Pago de Gasto" o "Préstamo Otorgado", significa que es un descuento interno de cuenta origen. Mantenlo verde si su naturaleza es verde.
+                    const esDescuento = ultimaTx.concepto && (ultimaTx.concepto.includes("[Pago de Gasto]") || ultimaTx.concepto.includes("[Préstamo Otorgado]"));
+                    
+                    if (ultimaTx.tipo === "Gasto" && !esDescuento) {
+                        claseColor = "txt-gasto"; 
+                    } else {
+                        claseColor = "txt-ingreso"; 
+                    }
+                }
+
+                let filasInternas = "";
+
+                transacciones.forEach(t => {
+                    const fechaTx = new Date(t.fecha);
+                    const mesTag = fechaTx.toISOString().substring(0, 7);
+                    
+                    if (fechaTx.getMonth() === mesActual && fechaTx.getFullYear() === anioActual) {
+                        // Comprobación segura del concepto
+                        const esDescuentoGasto = t.concepto && t.concepto.includes("[Pago de Gasto]");
+                        const esOtorgamientoPrestamo = t.concepto && t.concepto.includes("[Préstamo Otorgado]");
+                        const esDevolucionCapital = t.concepto && t.concepto.includes("[Capital Devuelto]");
+
+                        // GASTOS: Sumar solo si es Gasto real y NO es un descuento por transferencia a tarjeta ni prestamo.
+                        if (t.tipo === "Gasto" && !esDescuentoGasto && !esOtorgamientoPrestamo) {
+                            totalGastosMes += t.monto;
+                        }
+                        
+                        // INGRESOS: Sumar si es Ingreso, pero NO sumar si es un reembolso de capital o si la cuenta destino es una deuda (Abono).
+                        if ((t.tipo === "Ingreso" || t.tipo === "Abono")) {
+                            if (!esPrestamoHistorial && !esDevolucionCapital) {
+                                totalIngresosMes += t.monto; 
+                            }
+                        }
+                    }
+
+                    // Títulos visuales
+                    let tipoEtiqueta = t.tipo;
+                    if (esPrestamoHistorial) {
+                        if (t.tipo === "Gasto" || t.tipo === "Préstamo") tipoEtiqueta = "Préstamo";
+                        if (t.tipo === "Ingreso" || t.tipo === "Abono") tipoEtiqueta = "Abono";
+                    }
+                    if (t.concepto && t.concepto.includes("[Préstamo Otorgado]")) {
+                        tipoEtiqueta = "Préstamo"; // Fuerza la vista a decir Préstamo en tu cuenta Salario
+                    }
+
+                    filasInternas += `
+                        <tr class="inner-tx" data-mes="${mesTag}">
+                            <td data-label="Fecha" style="color:var(--text-muted)">${fechaTx.toLocaleDateString()}</td>
+                            <td data-label="Tipo"><strong style="color:var(--text-main)">${tipoEtiqueta}</strong></td>
+                            <td data-label="Monto" style="font-weight:600">$${t.monto.toLocaleString()}</td>
+                            <td data-label="Concepto" style="color:var(--text-muted)">${t.concepto || "-"}</td>
+                        </tr>
+                    `;
+                });
+
+                cuerpo.innerHTML += `
+                    <tr class="fila-registro" data-id="${u.id}">
+                        <td data-label="Registro" class="nombre-celda">
+                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:2px;">ID #${u.id}</div>
+                            <strong>${u.nombre}</strong>
+                        </td>
+                        <td data-label="Estado" class="${claseColor}">$${Math.abs(u.monto).toLocaleString()}</td>
+                        <td data-label="Acciones" class="acciones-cell">
+                            <button class="btn-mini" style="background:var(--primario)" onclick="toggleHistorial(${u.id})" title="Ver detalles">👁️</button>
+                            <button class="btn-mini" style="background:#0ea5e9" onclick="generarPDF(${u.id})" title="Descargar PDF">📄</button>
+                            <button class="btn-mini" style="background:#10b981" onclick="generarCSV(${u.id})" title="Exportar Excel">📗</button>
+                            <button class="btn-mini" style="background:#f59e0b" onclick="editar(${u.id},'${u.nombre}')" title="Editar Nombre">✏️</button>
+                            <button class="btn-mini" style="background:#ef4444" onclick="eliminar(${u.id})" title="Eliminar Todo">🗑️</button>
+                        </td>
+                    </tr>
+                    <tr class="fila-detalles" id="detalles-${u.id}">
+                        <td colspan="3" style="padding: 0; border: none;">
+                            <div class="detalle-container">
+                                <table class="tabla-interior">
+                                    <thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Concepto</th></tr></thead>
+                                    <tbody>${filasInternas || '<tr><td colspan="4" style="text-align:center;">Sin movimientos</td></tr>'}</tbody>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            filtrarTabla();
+            actualizarDashboard(totalIngresosMes, totalGastosMes, totalDeuda);
+        } catch(e) { 
+            console.error("Error al cargar datos:", e); 
+            toast("Error al cargar la tabla", colorGasto);
+        }
+    }
+
+    function actualizarDashboard(ingresos, gastos, deuda) {
+        animarContador('dashIngresos', ingresos);
+        animarContador('dashGastos', gastos);
+        animarContador('dashDeuda', deuda);
+
+        const ctx = document.getElementById('miGrafico').getContext('2d');
+        if (miGrafico) miGrafico.destroy(); 
+        if (ingresos === 0 && gastos === 0 && deuda === 0) return; 
+
+        const isDark = document.body.classList.contains('dark-mode');
+        const colorDeuda = isDark ? '#f8fafc' : '#334155';
+        const colorTexto = isDark ? '#cbd5e1' : '#64748b';
+        const colorBorde = isDark ? 'transparent' : '#ffffff';
+
+        miGrafico = new Chart(ctx, {
+            type: 'doughnut', 
+            data: {
+                labels: ['Ingresos (Mes)', 'Gastos (Mes)', 'Deuda Pendiente'],
+                datasets: [{ 
+                    data: [ingresos, gastos, deuda], 
+                    backgroundColor: [colorIngreso, colorGasto, colorDeuda], 
+                    borderWidth: isDark ? 0 : 3, 
+                    borderColor: colorBorde, hoverOffset: 4
+                }]
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false, cutout: '75%',
+                plugins: { legend: { position: 'right', labels: { color: colorTexto, font: { family: 'Inter', size: 12 } } } } 
+            }
+        });
+    }
+
+    function filtrarTabla() {
+        const texto = document.getElementById("buscador").value.toLowerCase();
+        const mesSeleccionado = document.getElementById("filtroMes").value; 
+
+        document.querySelectorAll(".fila-registro").forEach(fila => {
+            const id = fila.getAttribute("data-id");
+            const nombre = fila.querySelector(".nombre-celda strong").innerText.toLowerCase();
+            const filaDetalle = document.getElementById(`detalles-${id}`);
+            
+            let coincideTexto = nombre.includes(texto);
+            let tieneMovimientoEnMes = false;
+
+            if (filaDetalle) {
+                const transacciones = filaDetalle.querySelectorAll(".inner-tx");
+                transacciones.forEach(tx => {
+                    if (!mesSeleccionado || tx.getAttribute("data-mes") === mesSeleccionado) {
+                        tx.style.display = ""; tieneMovimientoEnMes = true;
+                    } else { tx.style.display = "none"; }
+                });
+            }
+
+            if (coincideTexto && (!mesSeleccionado || tieneMovimientoEnMes)) { fila.style.display = ""; } 
+            else { fila.style.display = "none"; if(filaDetalle) filaDetalle.classList.remove("abierto"); }
+        });
+    }
+
+    async function procesar() {
+        const btn = document.getElementById("btnProcesar");
+        const modo = document.getElementById("modoUsuario").value;
+        const montoCrudo = document.getElementById("montoInput").value.replace(/[^0-9.]/g, '');
+        const monto = parseFloat(montoCrudo);
+        const fecha = document.getElementById("fechaInput").value;
+        const categoria = document.getElementById("categoriaInput").value;
+        const conceptoCrudo = document.getElementById("conceptoInput").value;
+        
+        const esRecurrente = document.getElementById("checkRecurrente").checked;
+        const usarTransferencia = document.getElementById("checkTransferencia").checked;
+        const idOrigen = document.getElementById("cuentaOrigen").value;
+
+        // Limpieza de categoría según el tipo
+        let conceptoFinal = categoriaSeleccionada === "Préstamo" ? conceptoCrudo : (categoria !== "General" ? `[${categoria}] ${conceptoCrudo}`.trim() : conceptoCrudo);
+        if (esRecurrente) conceptoFinal += " 🔄 [Recurrente]";
+        
+        if (!monto || monto <= 0 || isNaN(monto)) return toast("Monto no válido", colorGasto);
+        if (usarTransferencia && !idOrigen && categoriaSeleccionada !== "Ingreso") return toast("Selecciona una cuenta de origen", colorGasto);
+
+        btn.disabled = true; btn.innerText = "Procesando...";
+
+        try {
+            let idUsuario;
+            let nombreDestino = "";
+            if (modo === "NEW") {
+                const nombre = document.getElementById("nombreNuevo").value;
+                if (!nombre) throw new Error("Escribe un nombre");
+                const res = await fetch(`${API}/cuentas`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ nombre: nombre, monto: 0 }) });
+                const nuevo = await res.json();
+                idUsuario = nuevo.id;
+                nombreDestino = nuevo.nombre;
+            } else {
+                idUsuario = document.getElementById("listaCuentas").value;
+                if (!idUsuario) throw new Error("Selecciona un registro");
+                const selectElem = document.getElementById("listaCuentas");
+                nombreDestino = selectElem.options[selectElem.selectedIndex].text;
+            }
+
+            // 1. Movimiento principal (El destino)
+            const bodyMov = {
+                cuentaId: Number(idUsuario), tipo: categoriaSeleccionada, monto: monto, concepto: conceptoFinal,
+                fecha: fecha ? new Date(fecha + "T12:00:00").toISOString() : new Date().toISOString()
+            };
+            await fetch(`${API}/movimientos`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(bodyMov) });
+
+            // 2. Movimiento secundario (Descontar de cuenta de origen si aplica)
+            if (usarTransferencia && idOrigen && categoriaSeleccionada !== "Ingreso") {
+                let tipoSecundario = "Gasto"; // Para la DB siempre es gasto (salida)
+                let conceptoTransferencia = "";
+                
+                if (categoriaSeleccionada === "Préstamo") {
+                    conceptoTransferencia = `[Préstamo Otorgado] Dinero prestado a ${nombreDestino}`;
+                } else {
+                    conceptoTransferencia = `[Pago de Gasto] Pago a ${nombreDestino}`;
+                }
+
+                const bodyTransfer = {
+                    cuentaId: Number(idOrigen), tipo: tipoSecundario, monto: monto, 
+                    concepto: conceptoTransferencia,
+                    fecha: fecha ? new Date(fecha + "T12:00:00").toISOString() : new Date().toISOString()
+                };
+                await fetch(`${API}/movimientos`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(bodyTransfer) });
+            }
+
+            // 3. Movimiento de Reembolso Mágico
+            if (categoriaSeleccionada === "Ingreso") {
+                const resHistUsuario = await fetch(`${API}/cuentas/${idUsuario}/historial`);
+                const dataHistUsuario = await resHistUsuario.json();
+                
+                // Buscar si la cuenta a la que abonamos era un préstamo históricamente
+                const isLoan = dataHistUsuario.transacciones && dataHistUsuario.transacciones.some(t => t.tipo === "Préstamo" && (!t.concepto || !t.concepto.includes("[Préstamo Otorgado]")));
+                
+                if (isLoan) {
+                    const { value: cuentaDevolucion } = await Swal.fire({
+                        title: '¿A qué cuenta devuelves este capital?',
+                        text: `Si le prestaste a ${nombreDestino} desde otra cuenta, elige a cuál regresar el dinero. Si es pago en efectivo, dale a Cancelar.`,
+                        input: 'select',
+                        inputOptions: Array.from(document.getElementById('cuentaOrigen').options).reduce((obj, item) => {
+                            if(item.value) obj[item.value] = item.text;
+                            return obj;
+                        }, {}),
+                        inputPlaceholder: 'Elige una cuenta para regresar el dinero',
+                        background: getSwalBg(), color: getSwalColor(),
+                        showCancelButton: true,
+                        confirmButtonText: 'Devolver fondos',
+                        cancelButtonText: 'Dejar como efectivo (Cancelar)',
+                        customClass: { input: 'custom-swal-select' }
+                    });
+                    
+                    if (cuentaDevolucion) {
+                        const bodyDevolucion = {
+                            cuentaId: Number(cuentaDevolucion), tipo: "Ingreso", monto: monto, 
+                            concepto: `[Capital Devuelto] Abono de ${nombreDestino}`,
+                            fecha: fecha ? new Date(fecha + "T12:00:00").toISOString() : new Date().toISOString()
+                        };
+                        await fetch(`${API}/movimientos`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(bodyDevolucion) });
+                    }
+                }
+            }
+
+            toast("¡Registro exitoso!", (categoriaSeleccionada === 'Ingreso' ? colorIngreso : categoriaSeleccionada === 'Gasto' ? colorGasto : '#334155'));
+            
+            // Limpieza de campos
+            document.getElementById("montoInput").value = ""; document.getElementById("conceptoInput").value = ""; 
+            document.getElementById("nombreNuevo").value = ""; document.getElementById("checkRecurrente").checked = false; 
+            document.getElementById("checkTransferencia").checked = false; toggleTransferencia();
+            document.getElementById("fechaInput").value = new Date().toISOString().split('T')[0];
+            
+            cerrarModal(); 
+            cargar();
+        } catch (e) { toast(e.message || "Error", colorGasto); } finally { btn.disabled = false; btn.innerText = "Guardar Movimiento"; }
+    }
+
+    async function eliminar(id) {
+        const result = await Swal.fire({ 
+            title: '¿Eliminar registro?', text: "Se eliminará la cuenta y su historial.", icon: 'warning', 
+            background: getSwalBg(), color: getSwalColor(), showCancelButton: true, confirmButtonColor: colorGasto, 
+            cancelButtonColor: '#64748b', confirmButtonText: '🗑️ Sí, eliminar', cancelButtonText: 'Cancelar'
+        });
+        if(result.isConfirmed) { await fetch(`${API}/cuentas/${id}`, { method: 'DELETE' }); cargar(); toast("Eliminado", colorGasto); }
+    }
+
+    async function editar(id, actual) {
+        const { value: nuevo } = await Swal.fire({ 
+            title: 'Editar Nombre', input: 'text', inputValue: actual, 
+            background: getSwalBg(), color: getSwalColor(), showCancelButton: true, confirmButtonColor: '#6366f1', 
+            cancelButtonColor: '#64748b', confirmButtonText: '💾 Guardar', cancelButtonText: 'Cancelar',
+            inputValidator: (value) => { if (!value) return '¡No puede estar vacío!' } 
+        });
+        if (nuevo) { await fetch(`${API}/cuentas/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ nombre: nuevo }) }); cargar(); toast("Actualizado", colorIngreso); }
+    }
+
+    async function generarCSV(id) {
+        const res = await fetch(`${API}/cuentas/${id}/historial`);
+        const data = await res.json();
+        const esPrestamo = data.transacciones && data.transacciones.some(t => t.tipo === "Préstamo" && (!t.concepto || !t.concepto.includes("[Préstamo Otorgado]")));
+
+        let csvContent = "Fecha,Tipo,Monto,Concepto\n";
+
+        if(data.transacciones) {
+            data.transacciones.forEach(t => {
+                let tipoEtiqueta = t.tipo;
+                if (esPrestamo) {
+                    if (t.tipo === "Gasto" || t.tipo === "Préstamo") tipoEtiqueta = "Préstamo";
+                    if (t.tipo === "Ingreso" || t.tipo === "Abono") tipoEtiqueta = "Abono";
+                }
+                if (t.concepto && t.concepto.includes("[Préstamo Otorgado]")) tipoEtiqueta = "Préstamo";
+                
+                const conceptoLimpio = (t.concepto || "-").replace(/,/g, " "); 
+                const fecha = new Date(t.fecha).toLocaleDateString();
+                csvContent += `${fecha},${tipoEtiqueta},${t.monto},${conceptoLimpio}\n`;
+            });
+        }
+
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url); link.setAttribute("download", `Historial_${data.nombre}.csv`);
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    async function generarPDF(id) {
+        const res = await fetch(`${API}/cuentas/${id}/historial`);
+        const data = await res.json();
+        if(!data || !data.transacciones) return toast("No hay historial", colorGasto);
+
+        const esPrestamo = data.transacciones.some(t => t.tipo === "Préstamo" && (!t.concepto || !t.concepto.includes("[Préstamo Otorgado]")));
+
+        const deudaInicial = data.transacciones.filter(t => t.tipo === "Préstamo" || t.tipo === "Gasto").reduce((acc, t) => acc + t.monto, 0);
+        const totalAbonos = data.transacciones.filter(t => t.tipo === "Abono" || t.tipo === "Ingreso").reduce((acc, t) => acc + t.monto, 0);
+
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        
+        doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.text("Estado de Cuenta", 14, 20); 
+        doc.setFont("helvetica", "normal"); doc.setFontSize(16); doc.text(`Registro: ${data.nombre}`, 14, 30);
+        
+        const saldoFinal = Math.abs(deudaInicial - totalAbonos); doc.setFontSize(12);
+        
+        if (esPrestamo) {
+            doc.text(`Total Prestado: $${deudaInicial.toLocaleString()}`, 14, 45); doc.text(`Abonos Realizados: $${totalAbonos.toLocaleString()}`, 14, 52);
+            if (saldoFinal === 0 || (deudaInicial - totalAbonos) <= 0) { doc.setTextColor(16, 185, 129); doc.setFont("helvetica", "bold"); doc.text(`ESTADO: ¡Préstamo Pagado!`, 14, 62); } else { doc.setTextColor(244, 63, 94); doc.setFont("helvetica", "bold"); doc.text(`Balance Pendiente: $${saldoFinal.toLocaleString()}`, 14, 62); }
+        } else {
+            doc.text(`Cargos / Gastos: $${deudaInicial.toLocaleString()}`, 14, 45); doc.text(`Abonos / Ingresos: $${totalAbonos.toLocaleString()}`, 14, 52);
+            doc.setTextColor(244, 63, 94); doc.setFont("helvetica", "bold"); doc.text(`Balance Final: $${saldoFinal.toLocaleString()}`, 14, 62);
+        }
+        
+        doc.setTextColor(0, 0, 0); doc.setFont("helvetica", "normal");
+        const tablaDatos = data.transacciones.map(t => {
+            let tipoEtiqueta = t.tipo;
+            if (esPrestamo) { if (t.tipo === "Gasto" || t.tipo === "Préstamo") tipoEtiqueta = "Préstamo"; if (t.tipo === "Ingreso" || t.tipo === "Abono") tipoEtiqueta = "Abono"; }
+            if (t.concepto && t.concepto.includes("[Préstamo Otorgado]")) tipoEtiqueta = "Préstamo";
+            return [ tipoEtiqueta, `$${t.monto.toLocaleString()}`, new Date(t.fecha).toLocaleDateString(), t.concepto || "-" ];
+        });
+
+        doc.autoTable({ startY: 70, head: [['Tipo', 'Monto', 'Fecha', 'Concepto']], body: tablaDatos, headStyles: { fillColor: [99, 102, 241] } });
+        doc.save(`Estado_Cuenta_${data.nombre}.pdf`);
+    }
+
+    initTheme();
+    document.getElementById("fechaInput").value = new Date().toISOString().split('T')[0];
+    cargar();
+</script>
+</body>
+</html>
