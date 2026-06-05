@@ -576,7 +576,6 @@
         let valorActual = valorActualAttr ? parseFloat(valorActualAttr) : 0;
         
         if(valorActual === valorFinal) {
-            // AQUÍ FORZAMOS EL 'en-US' PARA LAS COMAS
             elemento.innerText = `$${valorFinal.toLocaleString('en-US')}`;
             return;
         }
@@ -593,7 +592,6 @@
                 clearInterval(timer);
                 valorActual = valorFinal;
             }
-            // AQUÍ TAMBIÉN FORZAMOS 'en-US'
             elemento.innerText = `$${Math.round(valorActual).toLocaleString('en-US')}`;
         }, fotogramas);
         
@@ -661,7 +659,8 @@
 
     async function cargar() {
         try {
-            const res = await fetch(`${API}/cuentas`, { headers: { 'Authorization': `Bearer ${token}` } });
+            // 1 SOLA PETICIÓN: Obtenemos el Dashboard consolidado desde la nueva ruta optimizada
+            const res = await fetch(`${API}/dashboard`, { headers: { 'Authorization': `Bearer ${token}` } });
             
             // Si el token es inválido o expiró, te saca de la app
             if (res.status === 401 || res.status === 403) return handleLogout();
@@ -689,15 +688,9 @@
             // Guardaremos todo el HTML aquí primero para que no parpadee la tabla
             let nuevoCuerpoHTML = ""; 
 
-            // Pedimos todas las transacciones al mismo tiempo para que sea rapidísimo
-            const promesas = cuentas.map(u => fetch(`${API}/cuentas/${u.id}/historial`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()));
-            const historiales = await Promise.all(promesas);
-
-            for (const dataHist of historiales) {
-                if(!dataHist || !dataHist.transacciones) continue;
-
-                const u = dataHist; 
-                const transacciones = dataHist.transacciones.sort((a, b) => b.id - a.id);
+            // Iteramos directamente sobre la respuesta que ya incluye las transacciones de cada cuenta
+            for (const u of cuentas) {
+                const transacciones = u.transacciones || [];
                 const ultimaTx = transacciones[0]; 
                 
                 const esPrestamoHistorial = transacciones.some(t => t.tipo === "Préstamo" && (!t.concepto || !t.concepto.includes("[Préstamo Otorgado]")));
