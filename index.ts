@@ -26,12 +26,13 @@ interface AuthRequest extends Request {
 // ==========================================
 // MIDDLEWARE DE AUTENTICACIÓN
 // ==========================================
-const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+    res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+    return;
   }
 
   try {
@@ -40,6 +41,7 @@ const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) 
     next();
   } catch (error) {
     res.status(403).json({ error: 'Token inválido o expirado.' });
+    return;
   }
 };
 
@@ -48,18 +50,20 @@ const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) 
 // ==========================================
 
 // Registro de nuevos usuarios
-app.post('/api/auth/signup', async (req: Request, res: Response) => {
+app.post('/api/auth/signup', async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Correo y contraseña son obligatorios.' });
+      res.status(400).json({ error: 'Correo y contraseña son obligatorios.' });
+      return;
     }
 
     // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ error: 'El correo electrónico ya está registrado.' });
+      res.status(400).json({ error: 'El correo electrónico ya está registrado.' });
+      return;
     }
 
     // Encriptar contraseña
@@ -89,24 +93,27 @@ app.post('/api/auth/signup', async (req: Request, res: Response) => {
 });
 
 // Inicio de sesión (Login)
-app.post('/api/auth/login', async (req: Request, res: Response) => {
+app.post('/api/auth/login', async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Correo y contraseña son obligatorios.' });
+      res.status(400).json({ error: 'Correo y contraseña son obligatorios.' });
+      return;
     }
 
     // Buscar usuario
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return res.status(400).json({ error: 'Credenciales incorrectas.' });
+      res.status(400).json({ error: 'Credenciales incorrectas.' });
+      return;
     }
 
     // Validar contraseña
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(400).json({ error: 'Credenciales incorrectas.' });
+      res.status(400).json({ error: 'Credenciales incorrectas.' });
+      return;
     }
 
     // Generar Token JWT
@@ -124,7 +131,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
 });
 
 // Obtener datos del perfil actual
-app.get('/api/auth/me', authenticateToken, async (req: AuthRequest, res: Response) => {
+app.get('/api/auth/me', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   res.json({ user: req.user });
 });
 
@@ -132,17 +139,12 @@ app.get('/api/auth/me', authenticateToken, async (req: AuthRequest, res: Respons
 // RUTAS DE CUENTAS (PROTEGIDAS)
 // ==========================================
 
-// Obtener cuentas exclusivas del usuario autenticado
-app.get('/api/cuentas', authenticateToken, async (req: AuthRequest, res: Response) => {
+// Obtener TODAS las cuentas exclusivas del usuario autenticado
+app.get('/cuentas', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const cuentas = await prisma.cuenta.findMany({
-      where: { userId },
-      include: {
-        transacciones: {
-          orderBy: { fecha: 'desc' }
-        }
-      }
+      where: { userId }
     });
     res.json(cuentas);
   } catch (error) {
@@ -151,14 +153,42 @@ app.get('/api/cuentas', authenticateToken, async (req: AuthRequest, res: Respons
   }
 });
 
-// Crear una nueva cuenta asignada al usuario autenticado
-app.post('/api/cuentas', authenticateToken, async (req: AuthRequest, res: Response) => {
+// Obtener UNA cuenta específica con su historial (Exclusivo del usuario)
+app.get('/cuentas/:id/historial', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const cuentaId = parseInt(req.params.id);
+
+    const cuenta = await prisma.cuenta.findFirst({
+      where: { id: cuentaId, userId },
+      include: {
+        transacciones: {
+          orderBy: { fecha: 'desc' }
+        }
+      }
+    });
+
+    if (!cuenta) {
+      res.status(404).json({ error: 'Cuenta no encontrada o acceso denegado.' });
+      return;
+    }
+
+    res.json(cuenta);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener el historial.' });
+  }
+});
+
+// Crear una nueva cuenta asignada al usuario
+app.post('/cuentas', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { nombre, monto } = req.body;
 
     if (!nombre) {
-      return res.status(400).json({ error: 'El nombre de la cuenta es obligatorio.' });
+      res.status(400).json({ error: 'El nombre de la cuenta es obligatorio.' });
+      return;
     }
 
     const nuevaCuenta = await prisma.cuenta.create({
@@ -176,91 +206,110 @@ app.post('/api/cuentas', authenticateToken, async (req: AuthRequest, res: Respon
   }
 });
 
-// ==========================================
-// RUTAS DE TRANSACCIONES (PROTEGIDAS)
-// ==========================================
-
-// Crear transacción asociada a una cuenta del usuario
-app.post('/api/transacciones', authenticateToken, async (req: AuthRequest, res: Response) => {
+// Actualizar el nombre de una cuenta del usuario
+app.put('/cuentas/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const { tipo, monto, concepto, cuentaId } = req.body;
+    const cuentaId = parseInt(req.params.id);
+    const { nombre } = req.body;
 
-    if (!tipo || !monto || !cuentaId) {
-      return res.status(400).json({ error: 'Tipo, monto y cuentaId son obligatorios.' });
+    // Verificar propiedad
+    const cuenta = await prisma.cuenta.findFirst({ where: { id: cuentaId, userId } });
+    if (!cuenta) {
+      res.status(403).json({ error: 'Acceso denegado.' });
+      return;
     }
 
-    // Validar que la cuenta le pertenece al usuario autenticado
+    const cuentaActualizada = await prisma.cuenta.update({
+      where: { id: cuentaId },
+      data: { nombre }
+    });
+
+    res.json(cuentaActualizada);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al actualizar la cuenta.' });
+  }
+});
+
+// Eliminar una cuenta del usuario
+app.delete('/cuentas/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const cuentaId = parseInt(req.params.id);
+
+    // Verificar propiedad
+    const cuenta = await prisma.cuenta.findFirst({ where: { id: cuentaId, userId } });
+    if (!cuenta) {
+      res.status(403).json({ error: 'Acceso denegado.' });
+      return;
+    }
+
+    await prisma.cuenta.delete({
+      where: { id: cuentaId }
+    });
+
+    res.json({ message: 'Cuenta eliminada con éxito.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al eliminar la cuenta.' });
+  }
+});
+
+// ==========================================
+// RUTAS DE MOVIMIENTOS / TRANSACCIONES
+// ==========================================
+
+// Crear transacción (movimiento) asociada a una cuenta del usuario
+app.post('/movimientos', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const { cuentaId, tipo, monto, concepto, fecha } = req.body;
+
+    if (!tipo || !monto || !cuentaId) {
+      res.status(400).json({ error: 'Tipo, monto y cuentaId son obligatorios.' });
+      return;
+    }
+
+    // Validar que la cuenta le pertenece al usuario
     const cuenta = await prisma.cuenta.findFirst({
       where: { id: parseInt(cuentaId), userId }
     });
 
     if (!cuenta) {
-      return res.status(403).json({ error: 'No tienes permiso para operar en esta cuenta.' });
+      res.status(403).json({ error: 'No tienes permiso para operar en esta cuenta.' });
+      return;
     }
 
-    // Crear transacción y actualizar saldo usando una transacción de Prisma (Garantiza consistencia)
+    // Determinar si sumamos o restamos
+    let nuevoMonto = cuenta.monto;
+    if (tipo === 'Ingreso' || tipo === 'Abono') {
+      nuevoMonto += parseFloat(monto);
+    } else {
+      nuevoMonto -= parseFloat(monto); // Gastos y Préstamos
+    }
+
+    // Usar transacción de Prisma para asegurar consistencia
     const [nuevaTransaccion] = await prisma.$transaction([
       prisma.transaccion.create({
         data: {
           tipo,
           monto: parseFloat(monto),
           concepto,
-          cuentaId: parseInt(cuentaId)
+          cuentaId: parseInt(cuentaId),
+          fecha: fecha ? new Date(fecha) : new Date() // Si viene fecha manual se asigna
         }
       }),
       prisma.cuenta.update({
         where: { id: parseInt(cuentaId) },
-        data: {
-          monto: tipo === 'ingreso' 
-            ? cuenta.monto + parseFloat(monto) 
-            : cuenta.monto - parseFloat(monto)
-        }
+        data: { monto: nuevoMonto }
       })
     ]);
 
     res.status(201).json(nuevaTransaccion);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error al registrar la transacción.' });
-  }
-});
-
-// Borrar transacción y restaurar el balance de la cuenta del usuario
-app.delete('/api/transacciones/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.user!.id;
-    const transaccionId = parseInt(req.params.id);
-
-    // Buscar la transacción y verificar que pertenece a una cuenta del usuario autenticado
-    const transaccion = await prisma.transaccion.findUnique({
-      where: { id: transaccionId },
-      include: { cuenta: true }
-    });
-
-    if (!transaccion || transaccion.cuenta.userId !== userId) {
-      return res.status(404).json({ error: 'Transacción no encontrada o acceso denegado.' });
-    }
-
-    // Revertir el balance en la cuenta
-    const nuevoMonto = transaccion.tipo === 'ingreso'
-      ? transaccion.cuenta.monto - transaccion.monto
-      : transaccion.cuenta.monto + transaccion.monto;
-
-    await prisma.$transaction([
-      prisma.cuenta.update({
-        where: { id: transaccion.cuentaId },
-        data: { monto: nuevoMonto }
-      }),
-      prisma.transaccion.delete({
-        where: { id: transaccionId }
-      })
-    ]);
-
-    res.json({ message: 'Transacción eliminada con éxito y saldo revertido.' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al eliminar la transacción.' });
+    res.status(500).json({ error: 'Error al registrar el movimiento.' });
   }
 });
 
