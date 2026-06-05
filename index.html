@@ -1,527 +1,1073 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control Financiero Pro - MultiUsuario</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: '#4F46E5',
-            secondary: '#10B981',
-            darkBg: '#0F172A',
-            darkCard: '#1E293B'
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Financiero Pro</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Colores Base FinTech */
+            --primario: #6366f1;      /* Indigo moderno */
+            --ingreso: #10b981;       /* Verde Esmeralda Suave */
+            --gasto: #f43f5e;         /* Rojo Coral/Sandía */
+            --prestamo: #334155;      /* Gris Pizarra oscuro */
+            
+            /* Fondos y Superficies Soft UI */
+            --fondo: #f8fafc;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: rgba(226, 232, 240, 0.8);
+            
+            /* Inputs */
+            --bg-input: #f1f5f9;
+            --border-input: transparent;
+            --bg-hover: #f1f5f9;
+            
+            /* Overlay Modal */
+            --overlay-bg: rgba(15, 23, 42, 0.4);
+
+            /* Sombras Soft UI */
+            --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.06);
+            --shadow-hover: 0 20px 40px -10px rgba(0,0,0,0.12);
+            --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+            
+            /* Transiciones globales */
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-      }
-    }
-  </script>
-</head>
-<body class="bg-gray-50 text-gray-900 transition-colors duration-200 min-h-screen">
 
-  <!-- ==============================
-       PANTALLA DE AUTENTICACIÓN
-       ============================== -->
-  <div id="auth-screen" class="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-gray-100">
-    <div class="w-full max-w-md space-y-8 bg-white p-8 rounded-2xl shadow-xl transition-all border border-gray-100">
-      <div class="text-center">
-        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-2xl">
-          <i class="fa-solid fa-wallet"></i>
-        </div>
-        <h2 id="auth-title" class="mt-6 text-3xl font-extrabold tracking-tight text-gray-900">
-          Iniciar Sesión
-        </h2>
-        <p id="auth-subtitle" class="mt-2 text-sm text-gray-600">
-          ¿No tienes una cuenta? 
-          <a href="#" onclick="toggleAuthMode(true)" class="font-medium text-indigo-600 hover:text-indigo-500">Regístrate gratis</a>
-        </p>
-      </div>
+        body.dark-mode {
+            --primario: #818cf8;
+            --prestamo: #f8fafc;
+            --fondo: #0f172a;    
+            --bg-card: rgba(30, 41, 59, 0.7); 
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.05);
+            --bg-input: rgba(15, 23, 42, 0.6);
+            --border-input: rgba(255, 255, 255, 0.1);
+            --bg-hover: rgba(255, 255, 255, 0.05);
+            --overlay-bg: rgba(0, 0, 0, 0.7);
+            --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.4);
+            --shadow-hover: 0 20px 40px -10px rgba(0,0,0,0.6);
+            --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+        }
 
-      <form class="mt-8 space-y-6" onsubmit="handleAuth(event)">
-        <div class="space-y-4 rounded-md shadow-sm">
-          <div>
-            <label for="email-address" class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-            <input id="email-address" name="email" type="email" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="tu@correo.com">
-          </div>
-          <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-            <input id="password" name="password" type="password" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="••••••••">
-          </div>
-        </div>
+        body { 
+            font-family: 'Inter', sans-serif; background: var(--fondo); 
+            padding: 20px; color: var(--text-main); 
+            transition: background 0.4s ease, color 0.4s ease;
+            margin: 0; min-height: 100vh;
+            padding-bottom: 100px; /* Espacio para el FAB */
+        }
 
-        <div id="auth-error" class="hidden text-red-500 text-sm font-medium bg-red-50 p-3 rounded-lg border border-red-200 text-center"></div>
+        .app-wrapper { max-width: 1200px; margin: 0 auto; }
 
-        <div>
-          <button type="submit" id="auth-btn" class="group relative flex w-full justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all">
-            Ingresar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+        /* HEADER */
+        .header-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .header-main h1 { margin: 0; color: var(--text-main); font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+        .header-main h1 span { color: var(--primario); }
 
-  <!-- ==============================
-       PANTALLA DE DASHBOARD (APP PRINCIPAL)
-       ============================== -->
-  <div id="app-screen" class="hidden">
-    <!-- Navbar -->
-    <nav class="bg-white border-b border-gray-200 py-4 px-6 flex justify-between items-center shadow-sm">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl text-indigo-600"><i class="fa-solid fa-wallet"></i></span>
-        <h1 class="text-xl font-bold tracking-tight">Control Financiero <span class="text-indigo-600">Pro</span></h1>
-      </div>
-      <div class="flex items-center gap-4">
-        <span id="user-display" class="text-sm font-medium text-gray-600 hidden sm:inline"></span>
-        <button onclick="handleLogout()" class="px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all">
-          <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>Cerrar Sesión
-        </button>
-      </div>
-    </nav>
+        .theme-toggle { 
+            background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); 
+            padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: 600; font-size: 14px;
+            transition: var(--transition); box-shadow: var(--shadow-soft); display: flex; align-items: center; gap: 8px;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        }
+        .theme-toggle:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
 
-    <!-- Contenido Principal -->
-    <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      
-      <!-- Resumen General -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <!-- Balance General -->
-        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-500">Balance Total</p>
-            <h3 id="balance-total" class="text-3xl font-extrabold text-indigo-600 mt-1">$0.00</h3>
-          </div>
-          <div class="p-3 bg-indigo-50 text-indigo-600 rounded-2xl text-xl"><i class="fa-solid fa-scale-balanced"></i></div>
-        </div>
+        /* TARJETAS GLOBALES */
+        .card { 
+            background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border-color); 
+            box-shadow: var(--shadow-soft); transition: var(--transition);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            overflow: hidden;
+        }
 
-        <!-- Ingresos -->
-        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-500">Ingresos Totales</p>
-            <h3 id="ingresos-total" class="text-3xl font-extrabold text-emerald-600 mt-1">$0.00</h3>
-          </div>
-          <div class="p-3 bg-emerald-50 text-emerald-600 rounded-2xl text-xl"><i class="fa-solid fa-circle-arrow-up"></i></div>
-        </div>
-
-        <!-- Gastos -->
-        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-500">Gastos Totales</p>
-            <h3 id="gastos-total" class="text-3xl font-extrabold text-rose-600 mt-1">$0.00</h3>
-          </div>
-          <div class="p-3 bg-rose-50 text-rose-600 rounded-2xl text-xl"><i class="fa-solid fa-circle-arrow-down"></i></div>
-        </div>
-      </div>
-
-      <!-- Sección de Cuentas y Nueva Cuenta -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        /* DASHBOARD */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .metric-card { padding: 30px 25px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; }
+        .metric-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); }
+        .metric-card h3 { margin: 0; color: var(--text-muted); font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .metric-card p { margin: 0; font-size: 38px; font-weight: 700; letter-spacing: -1.5px; }
         
-        <!-- Cuentas -->
-        <div class="lg:col-span-1 space-y-6">
-          <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
-              Mis Cuentas
-              <button onclick="toggleModal('modal-cuenta', true)" class="text-indigo-600 hover:text-indigo-500 text-sm font-semibold">
-                <i class="fa-solid fa-plus mr-1"></i> Nueva
-              </button>
-            </h3>
-            <div id="cuentas-list" class="space-y-3">
-              <!-- Cuentas renderizadas dinámicamente -->
-              <p class="text-sm text-gray-400 text-center py-4">No tienes cuentas registradas.</p>
+        .val-ingreso { color: var(--ingreso); }
+        .val-gasto { color: var(--gasto); }
+        .val-deuda { color: var(--prestamo); }
+        
+        .chart-wrapper { padding: 25px; height: 350px; display: flex; justify-content: center; align-items: center; margin-bottom: 30px;}
+
+        /* ESTILOS AUTENTICACIÓN (LOGIN/REGISTRO) */
+        .auth-wrapper { display: flex; justify-content: center; align-items: center; min-height: 80vh; }
+        .auth-card { max-width: 420px; width: 100%; padding: 40px 30px; text-align: center; margin: auto; }
+        .auth-icon { font-size: 45px; margin-bottom: 15px; }
+        .auth-header h2 { margin: 0 0 10px 0; color: var(--text-main); font-size: 26px; letter-spacing: -0.5px;}
+        .auth-subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+        .auth-subtitle a { color: var(--primario); text-decoration: none; font-weight: 600; }
+        .auth-form { display: flex; flex-direction: column; gap: 15px; }
+        .btn-primario { background: var(--primario); color: white; padding: 16px; border: none; border-radius: 16px; cursor: pointer; font-weight: 600; font-size: 16px; transition: var(--transition); box-shadow: 0 10px 20px rgba(99, 102, 241, 0.25); }
+        .btn-primario:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 15px 25px rgba(99, 102, 241, 0.4); }
+        .btn-primario:disabled { opacity: 0.6; cursor: not-allowed; }
+        .auth-error { color: var(--gasto); background: rgba(244, 63, 94, 0.1); padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 600; }
+
+        /* MODAL (FORMULARIO FLOTANTE) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--overlay-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            z-index: 1000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: var(--transition);
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal-content {
+            background: var(--bg-card); border-radius: 24px; width: 90%; max-width: 450px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color);
+            transform: scale(0.9) translateY(20px); transition: var(--transition);
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
+
+        .modal-header { padding: 25px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { margin: 0; font-size: 18px; font-weight: 600; }
+        .btn-cerrar-modal { background: var(--bg-input); border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+        .btn-cerrar-modal:hover { background: var(--gasto); color: white; transform: rotate(90deg); }
+
+        .form-body { padding: 25px; display: flex; flex-direction: column; gap: 15px; }
+
+        .categoria-selector { display: flex; gap: 8px; margin-bottom: 5px; }
+        .btn-cat { 
+            flex: 1; padding: 12px 5px; border: 2px solid transparent; border-radius: 14px; 
+            cursor: pointer; font-weight: 600; font-size: 12px; background: var(--bg-input); 
+            color: var(--text-muted); transition: var(--transition); text-align: center;
+        }
+        .btn-cat:hover { background: var(--bg-hover); transform: translateY(-2px); }
+        
+        .btn-cat.active[data-tipo="Ingreso"] { color: white; background: var(--ingreso); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
+        .btn-cat.active[data-tipo="Gasto"] { color: white; background: var(--gasto); box-shadow: 0 8px 20px rgba(244, 63, 94, 0.3); }
+        .btn-cat.active[data-tipo="Préstamo"] { color: white; background: var(--prestamo); box-shadow: 0 8px 20px rgba(51, 65, 85, 0.3); }
+        body.dark-mode .btn-cat.active[data-tipo="Préstamo"] { color: #0f172a; } /* Fix para hacer visible el texto en modo oscuro */
+
+        input, select { 
+            padding: 14px 18px; background: var(--bg-input); color: var(--text-main); 
+            border: 1px solid var(--border-input); border-radius: 16px; font-size: 15px; 
+            outline: none; transition: var(--transition); box-shadow: var(--shadow-inner);
+            font-family: 'Inter', sans-serif; width: 100%; box-sizing: border-box;
+        }
+        input:focus, select:focus { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); background: var(--bg-card); border-color: var(--primario); }
+        
+        /* Nuevos estilos para los selectores (dropdowns) en modo oscuro */
+        body.dark-mode select {
+            background-color: var(--bg-input);
+            color: var(--text-main);
+        }
+        body.dark-mode select option {
+            background-color: #1e293b; /* Fondo oscuro sólido para las opciones */
+            color: #f1f5f9; /* Texto claro */
+        }
+
+        /* Fix para los iconos del calendario (Día y Mes) en modo oscuro */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="month"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
+        
+        body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator,
+        body.dark-mode input[type="month"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+        .contenedor-recurrente { 
+            display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 14px; 
+            color: var(--text-muted); background: var(--bg-input); padding: 14px 18px; 
+            border-radius: 16px; border: 1px solid var(--border-input); cursor: pointer; transition: var(--transition); 
+        }
+        .contenedor-recurrente:hover { background: var(--bg-hover); }
+        .contenedor-recurrente input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primario); }
+
+        button#btnProcesar { 
+            padding: 16px; background: var(--ingreso); color: white; border: none; border-radius: 16px; width: 100%;
+            cursor: pointer; font-weight: 600; font-size: 16px; margin-top: 5px; transition: var(--transition);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+        }
+        button#btnProcesar:hover:not(:disabled) { transform: translateY(-3px); filter: brightness(1.1); box-shadow: 0 15px 25px rgba(16, 185, 129, 0.4); }
+        button#btnProcesar:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* FAB (Floating Action Button) */
+        .fab-btn {
+            position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px;
+            background: linear-gradient(135deg, var(--primario), #818cf8); border: none;
+            border-radius: 50%; color: white; font-size: 32px; font-weight: 300; display: flex;
+            align-items: center; justify-content: center; cursor: pointer; z-index: 900;
+            box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4); transition: var(--transition);
+        }
+        .fab-btn:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 20px 40px rgba(99, 102, 241, 0.6); }
+
+        .header-tabla { padding: 25px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .header-tabla h2 { margin: 0; font-size: 18px; font-weight: 600; }
+        .filtros-wrapper { display: flex; gap: 10px; flex: 1; justify-content: flex-end; }
+        #buscador, #filtroMes { padding: 12px 20px; border-radius: 30px; box-shadow: none; width: auto; flex: unset; }
+        #buscador { flex: 1; max-width: 280px; }
+
+        .table-responsive { padding: 0 10px 20px 10px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+        th { color: var(--text-muted); padding: 15px 20px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; border-bottom: 1px solid var(--border-color); }
+        td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-size: 14px; font-weight: 500; }
+        
+        .txt-ingreso { color: var(--ingreso) !important; font-weight: 700; }
+        .txt-gasto { color: var(--gasto) !important; font-weight: 700; }
+        .txt-prestamo { color: var(--prestamo) !important; font-weight: 700; }
+
+        .acciones-cell { display: flex; gap: 6px; }
+        .btn-mini { 
+            width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+            border: none; border-radius: 10px; cursor: pointer; color: white; font-size: 14px; transition: var(--transition);
+        }
+        .btn-mini:hover { transform: translateY(-3px); filter: brightness(1.1); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+        
+        .fila-detalles { display: none; }
+        .fila-detalles.abierto { display: table-row; animation: fadeInDown 0.3s ease; }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .detalle-container { padding: 0 20px 20px 20px; background: var(--bg-hover); border-radius: 0 0 16px 16px; }
+        .tabla-interior th { padding: 12px 10px; font-size: 11px; }
+        .tabla-interior td { padding: 12px 10px; color: var(--text-main); }
+        .inner-tx:hover { background: rgba(0,0,0,0.03); }
+
+        /* Ajustes específicos para el select dentro de SweetAlert2 */
+        .swal2-select.custom-swal-select {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            font-size: 14px;
+        }
+        body.dark-mode .swal2-select.custom-swal-select {
+            background-color: rgba(15, 23, 42, 0.6) !important;
+            color: #f1f5f9 !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        body.dark-mode .swal2-select.custom-swal-select option { background-color: #1e293b; color: #f1f5f9; }
+
+        /* MOBILE FIRST: Transformar tabla en Tarjetas */
+        @media (max-width: 768px) {
+            .header-tabla { flex-direction: column; align-items: flex-start; }
+            .filtros-wrapper { width: 100%; flex-direction: column; }
+            #buscador, #filtroMes { max-width: 100%; width: 100%; box-sizing: border-box; }
+            
+            thead { display: none; }
+            .table-responsive { padding: 15px; }
+            .fila-registro { 
+                display: flex; flex-direction: column; background: var(--bg-card); 
+                border: 1px solid var(--border-color); border-radius: 16px; 
+                margin-bottom: 15px; padding: 15px; box-shadow: var(--shadow-soft);
+            }
+            .fila-registro td { 
+                display: flex; justify-content: space-between; align-items: center; 
+                padding: 10px 0; border-bottom: 1px dashed var(--border-color); 
+            }
+            .fila-registro td:last-child { border-bottom: none; padding-bottom: 0; }
+            
+            .fila-registro td::before { 
+                content: attr(data-label); font-weight: 600; color: var(--text-muted); 
+                font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+            }
+            
+            .acciones-cell { display: flex; justify-content: flex-end; width: 100%; gap: 8px; margin-top: 5px; }
+            .nombre-celda { text-align: right; }
+            .nombre-celda div { display: none; } 
+            
+            .fila-detalles.abierto { display: block; margin-top: -10px; margin-bottom: 20px; }
+            .detalle-container { padding: 15px; border-radius: 16px; border: 1px solid var(--border-color); }
+            .tabla-interior thead { display: none; }
+            .inner-tx { display: flex; flex-direction: column; background: var(--bg-input); border-radius: 12px; margin-bottom: 10px; padding: 12px; }
+            .inner-tx td { display: flex; justify-content: space-between; padding: 6px 0; border: none; font-size: 13px;}
+            .inner-tx td::before { content: attr(data-label); font-weight: 600; color: var(--text-muted); font-size: 10px; text-transform: uppercase; }
+        }
+    </style>
+    <!-- Librerías Externas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+
+<!-- PANTALLA DE AUTENTICACIÓN (Se oculta al iniciar sesión) -->
+<div id="auth-screen" class="auth-wrapper">
+    <div class="card auth-card">
+        <div class="auth-icon">🔐</div>
+        <h2 id="auth-title">Iniciar Sesión</h2>
+        <p id="auth-subtitle" class="auth-subtitle">
+            ¿No tienes cuenta? <a href="#" onclick="toggleAuthMode(true)">Regístrate gratis</a>
+        </p>
+        <form onsubmit="handleAuth(event)" class="auth-form">
+            <input type="email" id="auth-email" placeholder="Correo electrónico" required>
+            <input type="password" id="auth-password" placeholder="Contraseña" required>
+            <div id="auth-error" class="auth-error" style="display: none;"></div>
+            <button type="submit" id="auth-btn" class="btn-primario">Ingresar</button>
+        </form>
+    </div>
+</div>
+
+<!-- APLICACIÓN PRINCIPAL (Se muestra después de iniciar sesión) -->
+<div id="app-screen" style="display: none;">
+    <div class="app-wrapper">
+        <header class="header-main">
+            <h1><span>💰</span> Control Financiero <span>Pro</span></h1>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="btnTheme" class="theme-toggle" onclick="toggleTheme()">🌙 Modo Oscuro</button>
+                <button class="theme-toggle" style="color: var(--gasto);" onclick="handleLogout()">🚪 Salir</button>
             </div>
-          </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <div class="card metric-card">
+                <h3>Ingresos (Mes)</h3>
+                <p id="dashIngresos" class="val-ingreso" data-val="0">$0</p>
+            </div>
+            <div class="card metric-card">
+                <h3>Gastos (Mes)</h3>
+                <p id="dashGastos" class="val-gasto" data-val="0">$0</p>
+            </div>
+            <div class="card metric-card">
+                <h3>Deuda Activa</h3>
+                <p id="dashDeuda" class="val-deuda" data-val="0">$0</p>
+            </div>
+        </div>
+        
+        <div class="card chart-wrapper">
+            <canvas id="miGrafico"></canvas>
         </div>
 
-        <!-- Historial y Registro -->
-        <div class="lg:col-span-2 space-y-6">
-          <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <div class="flex justify-between items-center mb-6">
-              <h3 class="text-lg font-bold">Historial de Movimientos</h3>
-              <button id="add-trans-btn" disabled onclick="toggleModal('modal-transaccion', true)" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                <i class="fa-solid fa-plus mr-2"></i>Registrar Movimiento
-              </button>
+        <div class="card table-section">
+            <div class="header-tabla">
+                <h2>Historial de Cuentas</h2>
+                <div class="filtros-wrapper">
+                    <input type="month" id="filtroMes" onchange="filtrarTabla()" title="Filtrar por mes">
+                    <input type="text" id="buscador" placeholder="🔍 Buscar registro..." onkeyup="filtrarTabla()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Registro</th>
+                            <th>Estado Actual</th>
+                            <th style="text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cuerpoTabla"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTÓN FLOTANTE FAB -->
+    <button class="fab-btn" onclick="abrirModal()" title="Nuevo Movimiento">+</button>
+
+    <!-- MODAL FORMULARIO (Oculto por defecto) -->
+    <div id="modalFormulario" class="modal-overlay" onclick="cerrarModalAfuera(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nuevo Movimiento</h2>
+                <button class="btn-cerrar-modal" onclick="cerrarModal()">✕</button>
+            </div>
+            <div class="form-body">
+                <div class="categoria-selector">
+                    <button class="btn-cat active" data-tipo="Ingreso" onclick="setCategoria('Ingreso')">INGRESO / ABONO</button>
+                    <button class="btn-cat" data-tipo="Gasto" onclick="setCategoria('Gasto')">GASTO</button>
+                    <button class="btn-cat" data-tipo="Préstamo" onclick="setCategoria('Préstamo')">PRÉSTAMO</button>
+                </div>
+
+                <select id="modoUsuario" onchange="toggleInputs()">
+                    <option value="EXISTING">👤 Registro Existente</option>
+                    <option value="NEW">➕ Nuevo Registro</option>
+                </select>
+                
+                <input type="text" id="nombreNuevo" placeholder="Nombre del nuevo registro..." style="display:none;">
+                <select id="listaCuentas"><option value="">Cargando registros...</option></select>
+                
+                <input type="text" id="montoInput" placeholder="Monto $" oninput="formatearMoneda(this)">
+                <input type="date" id="fechaInput">
+                
+                <!-- Selector de Categorías (Se ocultará en préstamos) -->
+                <select id="categoriaInput">
+                    <option value="General">🏷️ General</option>
+                    <option value="Comida">🍔 Comida</option>
+                    <option value="Transporte">🚗 Transporte</option>
+                    <option value="Vivienda">🏠 Vivienda / Servicios</option>
+                    <option value="Entretenimiento">🍿 Entretenimiento</option>
+                    <option value="Pago Tarjeta/Deuda">💳 Pago Tarjeta/Deuda</option>
+                    <option value="Nómina/Salario">💵 Nómina/Salario</option>
+                    <option value="Abono a préstamo">💸 Abono a préstamo</option>
+                </select>
+                
+                <input type="text" id="conceptoInput" placeholder="Detalles o Concepto (Opcional)">
+            
+            <!-- Contenedor ocultable según el tipo de movimiento -->
+            <div id="opcionTransferencia" style="display: none; flex-direction: column; gap: 10px; margin-top: 5px;">
+                <label class="contenedor-recurrente">
+                    <input type="checkbox" id="checkTransferencia" onchange="toggleTransferencia()">
+                    <span id="labelTransferencia">💳 Descontar fondos de otra cuenta</span>
+                </label>
+                <select id="cuentaOrigen" style="display: none;">
+                    <option value="">-- Elige la cuenta de origen --</option>
+                </select>
             </div>
             
-            <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="border-b border-gray-200 text-xs font-semibold uppercase text-gray-400">
-                    <th class="py-3 px-4">Concepto</th>
-                    <th class="py-3 px-4">Cuenta</th>
-                    <th class="py-3 px-4">Monto</th>
-                    <th class="py-3 px-4 text-right">Acción</th>
-                  </tr>
-                </thead>
-                <tbody id="transacciones-list" class="divide-y divide-gray-100">
-                  <!-- Transacciones cargadas dinámicamente -->
-                </tbody>
-              </table>
+            <label class="contenedor-recurrente">
+                <input type="checkbox" id="checkRecurrente">
+                    🔄 Hacer movimiento recurrente
+                </label>
+
+                <button id="btnProcesar" onclick="procesar()">Guardar Movimiento</button>
             </div>
-          </div>
         </div>
-
-      </div>
-    </main>
-  </div>
-
-  <!-- ==============================
-       MODALES
-       ============================== -->
-
-  <!-- Modal Nueva Cuenta -->
-  <div id="modal-cuenta" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-100">
-      <h3 class="text-xl font-bold mb-4">Nueva Cuenta</h3>
-      <form onsubmit="createCuenta(event)">
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Nombre de la cuenta</label>
-            <input id="cuenta-nombre" type="text" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ejem: Tarjeta, Efectivo">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Saldo Inicial (Opcional)</label>
-            <input id="cuenta-monto" type="number" step="0.01" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" placeholder="0.00">
-          </div>
-        </div>
-        <div class="mt-6 flex justify-end gap-3">
-          <button type="button" onclick="toggleModal('modal-cuenta', false)" class="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-xl">Cancelar</button>
-          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl">Crear Cuenta</button>
-        </div>
-      </form>
     </div>
-  </div>
+</div>
 
-  <!-- Modal Nueva Transacción -->
-  <div id="modal-transaccion" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-100">
-      <h3 class="text-xl font-bold mb-4">Registrar Movimiento</h3>
-      <form onsubmit="createTransaccion(event)">
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Cuenta</label>
-            <select id="trans-cuentaId" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-              <!-- Opciones cargadas por JS -->
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Tipo de movimiento</label>
-            <div class="grid grid-cols-2 gap-3 mt-1">
-              <label class="flex items-center justify-center gap-2 border border-gray-300 rounded-xl p-3 cursor-pointer hover:bg-emerald-50 hover:border-emerald-500 transition-all select-none">
-                <input type="radio" name="tipo" value="ingreso" checked class="text-emerald-600 focus:ring-emerald-500">
-                <span class="text-sm font-medium text-emerald-600">Ingreso</span>
-              </label>
-              <label class="flex items-center justify-center gap-2 border border-gray-300 rounded-xl p-3 cursor-pointer hover:bg-rose-50 hover:border-rose-500 transition-all select-none">
-                <input type="radio" name="tipo" value="gasto" class="text-rose-600 focus:ring-rose-500">
-                <span class="text-sm font-medium text-rose-600">Gasto</span>
-              </label>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Monto</label>
-            <input id="trans-monto" type="number" step="0.01" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" placeholder="0.00">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Concepto</label>
-            <input id="trans-concepto" type="text" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ejem: Súper, Pago de nómina">
-          </div>
-        </div>
-        <div class="mt-6 flex justify-end gap-3">
-          <button type="button" onclick="toggleModal('modal-transaccion', false)" class="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-xl">Cancelar</button>
-          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl">Guardar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ==============================
-       SISTEMA DE LOGICA CON JS
-       ============================== -->
-  <script>
-    // URL de tu Backend
+<script>
     const API = "https://control-backend-ndpz.onrender.com";
+    let categoriaSeleccionada = "Ingreso";
+    let miGrafico; 
 
+    // --- VARIABLES DE AUTENTICACIÓN ---
     let token = localStorage.getItem('token') || '';
     let isRegisterMode = false;
-    let cuentas = [];
 
-    // Inicializar App
+    // Códigos HEX FinTech
+    const colorIngreso = '#10b981'; 
+    const colorGasto = '#f43f5e';   
+
     window.onload = () => {
-      checkSession();
+        initTheme();
+        checkSession(); // Revisa si hay sesión activa al cargar
     };
 
+    // --- LÓGICA DE AUTENTICACIÓN ---
     function checkSession() {
-      if (token) {
-        document.getElementById('auth-screen').classList.add('hidden');
-        document.getElementById('app-screen').classList.remove('hidden');
-        document.getElementById('user-display').innerText = localStorage.getItem('userEmail') || 'Mi Cuenta';
-        fetchData();
-      } else {
-        document.getElementById('auth-screen').classList.remove('hidden');
-        document.getElementById('app-screen').classList.add('hidden');
-      }
+        if (token) {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'block';
+            document.getElementById("fechaInput").value = new Date().toISOString().split('T')[0];
+            cargar();
+        } else {
+            document.getElementById('auth-screen').style.display = 'flex';
+            document.getElementById('app-screen').style.display = 'none';
+        }
     }
 
     function toggleAuthMode(register) {
-      isRegisterMode = register;
-      const title = document.getElementById('auth-title');
-      const subtitle = document.getElementById('auth-subtitle');
-      const btn = document.getElementById('auth-btn');
-      const errorDiv = document.getElementById('auth-error');
-      
-      errorDiv.classList.add('hidden');
+        isRegisterMode = register;
+        const title = document.getElementById('auth-title');
+        const subtitle = document.getElementById('auth-subtitle');
+        const btn = document.getElementById('auth-btn');
+        const errorDiv = document.getElementById('auth-error');
+        
+        errorDiv.style.display = 'none';
 
-      if (register) {
-        title.innerText = "Crear Cuenta Nueva";
-        subtitle.innerHTML = '¿Ya tienes cuenta? <a href="#" onclick="toggleAuthMode(false)" class="font-medium text-indigo-600 hover:text-indigo-500">Inicia sesión</a>';
-        btn.innerText = "Registrarme";
-      } else {
-        title.innerText = "Iniciar Sesión";
-        subtitle.innerHTML = '¿No tienes una cuenta? <a href="#" onclick="toggleAuthMode(true)" class="font-medium text-indigo-600 hover:text-indigo-500">Regístrate gratis</a>';
-        btn.innerText = "Ingresar";
-      }
+        if (register) {
+            title.innerText = "Crear Cuenta Nueva";
+            subtitle.innerHTML = '¿Ya tienes cuenta? <a href="#" onclick="toggleAuthMode(false)">Inicia sesión</a>';
+            btn.innerText = "Registrarme";
+        } else {
+            title.innerText = "Iniciar Sesión";
+            subtitle.innerHTML = '¿No tienes cuenta? <a href="#" onclick="toggleAuthMode(true)">Regístrate gratis</a>';
+            btn.innerText = "Ingresar";
+        }
     }
 
     async function handleAuth(event) {
-      event.preventDefault();
-      const email = document.getElementById('email-address').value;
-      const password = document.getElementById('password').value;
-      const errorDiv = document.getElementById('auth-error');
-      const btn = document.getElementById('auth-btn');
+        event.preventDefault();
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const errorDiv = document.getElementById('auth-error');
+        const btn = document.getElementById('auth-btn');
 
-      errorDiv.classList.add('hidden');
-      btn.disabled = true;
-      btn.innerText = "Procesando...";
+        errorDiv.style.display = 'none';
+        btn.disabled = true;
+        btn.innerText = "Procesando...";
 
-      const endpoint = isRegisterMode ? '/api/auth/signup' : '/api/auth/login';
+        // Usaremos las nuevas rutas preparadas para tu index.ts
+        const endpoint = isRegisterMode ? '/api/auth/signup' : '/api/auth/login';
 
-      try {
-        const response = await fetch(`${API}${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
+        try {
+            const response = await fetch(`${API}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
 
-        const data = await response.json();
+            const data = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Ocurrió un error inesperado');
+            if (!response.ok) throw new Error(data.error || 'Error al iniciar sesión');
+
+            // Guardar sesión
+            token = data.token;
+            localStorage.setItem('token', token);
+            
+            checkSession();
+        } catch (error) {
+            errorDiv.innerText = error.message;
+            errorDiv.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = isRegisterMode ? "Registrarme" : "Ingresar";
         }
-
-        // Guardar sesión
-        token = data.token;
-        localStorage.setItem('token', token);
-        localStorage.setItem('userEmail', data.user.email);
-
-        checkSession();
-      } catch (error) {
-        errorDiv.innerText = error.message;
-        errorDiv.classList.remove('hidden');
-      } finally {
-        btn.disabled = false;
-        btn.innerText = isRegisterMode ? "Registrarme" : "Ingresar";
-      }
     }
 
     function handleLogout() {
-      token = '';
-      localStorage.clear();
-      checkSession();
+        token = '';
+        localStorage.removeItem('token');
+        checkSession();
     }
 
-    // --- MANEJO DE DATOS DEL DASHBOARD ---
 
-    async function fetchData() {
-      try {
-        const response = await fetch(`${API}/api/cuentas`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+    // --- Control del Modal Flotante ---
+    function abrirModal() { document.getElementById('modalFormulario').classList.add('active'); }
+    function cerrarModal() { document.getElementById('modalFormulario').classList.remove('active'); }
+    function cerrarModalAfuera(event) { if (event.target.id === 'modalFormulario') cerrarModal(); }
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+        document.getElementById('btnTheme').innerHTML = isDark ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
+        setCategoria(categoriaSeleccionada); 
+        if(miGrafico) cargar(); 
+    }
+
+    function initTheme() {
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('btnTheme').innerHTML = '☀️ Modo Claro';
+        }
+    }
+
+    function getSwalBg() { return document.body.classList.contains('dark-mode') ? '#1e293b' : '#ffffff'; }
+    function getSwalColor() { return document.body.classList.contains('dark-mode') ? '#f1f5f9' : '#1e293b'; }
+
+    function toast(msj, colorHex = "#333") {
+        let icono = 'info';
+        if (colorHex === colorIngreso) icono = 'success';
+        else if (colorHex === colorGasto) icono = 'error';
+        Swal.fire({ 
+            background: getSwalBg(), color: getSwalColor(),
+            toast: true, position: 'top-end', icon: icono, title: msj, 
+            showConfirmButton: false, timer: 3000, timerProgressBar: true
         });
-
-        if (!response.ok) throw new Error();
-
-        cuentas = await response.json();
-        renderDashboard();
-      } catch (error) {
-        console.error("Error al cargar datos", error);
-        // Si el token expira o es incorrecto por algún cambio, forzar logout
-        handleLogout();
-      }
     }
 
-    function renderDashboard() {
-      const balanceTotalEl = document.getElementById('balance-total');
-      const ingresosTotalEl = document.getElementById('ingresos-total');
-      const gastosTotalEl = document.getElementById('gastos-total');
-      const cuentasListEl = document.getElementById('cuentas-list');
-      const transaccionesListEl = document.getElementById('transacciones-list');
-      const addTransBtn = document.getElementById('add-trans-btn');
-      const selectCuentas = document.getElementById('trans-cuentaId');
+    function formatearMoneda(input) {
+        let valor = input.value.replace(/[^0-9.]/g, '');
+        const partes = valor.split('.');
+        if (partes.length > 2) valor = partes[0] + '.' + partes.slice(1).join('');
+        if (valor === '') return input.value = '';
+        const tieneDecimales = valor.includes('.');
+        const enteros = partes[0] ? parseInt(partes[0], 10).toLocaleString('en-US') : '0';
+        input.value = tieneDecimales ? '$' + enteros + '.' + partes[1].substring(0, 2) : '$' + enteros;
+    }
 
-      let balance = 0;
-      let ingresos = 0;
-      let gastos = 0;
-      let allTransactions = [];
-
-      // Limpiar select de cuentas del modal transacciones
-      selectCuentas.innerHTML = "";
-
-      if (cuentas.length === 0) {
-        cuentasListEl.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">No tienes cuentas. Crea una para comenzar.</p>`;
-        addTransBtn.disabled = true;
-      } else {
-        addTransBtn.disabled = false;
-        cuentasListEl.innerHTML = "";
+    function animarContador(id, valorFinal) {
+        const elemento = document.getElementById(id);
+        const valorActualAttr = elemento.getAttribute("data-val");
+        let valorActual = valorActualAttr ? parseFloat(valorActualAttr) : 0;
         
-        cuentas.forEach(cuenta => {
-          balance += cuenta.monto;
+        if(valorActual === valorFinal) {
+            elemento.innerText = `$${valorFinal.toLocaleString()}`;
+            return;
+        }
 
-          // Añadir opción al selector del modal
-          const option = document.createElement('option');
-          option.value = cuenta.id;
-          option.innerText = cuenta.nombre;
-          selectCuentas.appendChild(option);
-
-          // Construir lista de cuentas en UI
-          cuentasListEl.innerHTML += `
-            <div class="flex justify-between items-center p-3 rounded-xl hover:bg-gray-50 border border-gray-100 transition-all">
-              <span class="font-medium text-sm text-gray-700">${cuenta.nombre}</span>
-              <span class="font-bold text-sm ${cuenta.monto >= 0 ? 'text-emerald-600' : 'text-rose-600'}">
-                $${cuenta.monto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          `;
-
-          // Recolectar transacciones
-          cuenta.transacciones.forEach(t => {
-            if (t.tipo === 'ingreso') ingresos += t.monto;
-            if (t.tipo === 'gasto') gastos += t.monto;
-            allTransactions.push({ ...t, cuentaNombre: cuenta.nombre });
-          });
-        });
-      }
-
-      // Renderizar números globales
-      balanceTotalEl.innerText = `$${balance.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      ingresosTotalEl.innerText = `$${ingresos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      gastosTotalEl.innerText = `$${gastos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-      // Ordenar todas las transacciones por fecha desc
-      allTransactions.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-      // Renderizar transacciones en tabla
-      if (allTransactions.length === 0) {
-        transaccionesListEl.innerHTML = `
-          <tr>
-            <td colspan="4" class="py-8 text-center text-sm text-gray-400">No hay movimientos registrados en tus cuentas.</td>
-          </tr>
-        `;
-      } else {
-        transaccionesListEl.innerHTML = "";
-        allTransactions.forEach(t => {
-          transaccionesListEl.innerHTML += `
-            <tr class="hover:bg-gray-50 transition-all">
-              <td class="py-4 px-4 text-sm font-semibold">${t.concepto}</td>
-              <td class="py-4 px-4 text-xs text-gray-500 font-medium">
-                <span class="bg-gray-100 px-2 py-1 rounded-lg">${t.cuentaNombre}</span>
-              </td>
-              <td class="py-4 px-4 text-sm font-bold ${t.tipo === 'ingreso' ? 'text-emerald-600' : 'text-rose-600'}">
-                ${t.tipo === 'ingreso' ? '+' : '-'}$${t.monto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </td>
-              <td class="py-4 px-4 text-right">
-                <button onclick="deleteTransaccion(${t.id})" class="text-rose-600 hover:text-rose-800 p-2 text-sm"><i class="fa-solid fa-trash"></i></button>
-              </td>
-            </tr>
-          `;
-        });
-      }
+        const duracion = 1200; 
+        const fotogramas = 60;
+        const incremento = (valorFinal - valorActual) / (duracion / fotogramas);
+        
+        let iteracion = 0;
+        const timer = setInterval(() => {
+            valorActual += incremento;
+            iteracion++;
+            if (iteracion >= (duracion / fotogramas)) {
+                clearInterval(timer);
+                valorActual = valorFinal;
+            }
+            elemento.innerText = `$${Math.round(valorActual).toLocaleString()}`;
+        }, fotogramas);
+        
+        elemento.setAttribute("data-val", valorFinal);
     }
 
-    // --- OPERACIONES ---
+    function setCategoria(tipo) {
+        categoriaSeleccionada = tipo;
+        document.querySelectorAll('.btn-cat').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.btn-cat[data-tipo="${tipo}"]`).classList.add('active');
+        
+        const btn = document.getElementById('btnProcesar');
+        const isDark = document.body.classList.contains('dark-mode');
 
-    async function createCuenta(e) {
-      e.preventDefault();
-      const nombre = document.getElementById('cuenta-nombre').value;
-      const monto = document.getElementById('cuenta-monto').value;
+        if(tipo === 'Ingreso') {
+            btn.style.background = colorIngreso; btn.style.color = 'white';
+            btn.style.boxShadow = '0 10px 20px rgba(16, 185, 129, 0.25)';
+            document.getElementById('categoriaInput').style.display = 'block';
+        } else if(tipo === 'Gasto') {
+            btn.style.background = colorGasto; btn.style.color = 'white';
+            btn.style.boxShadow = '0 10px 20px rgba(244, 63, 94, 0.25)';
+            document.getElementById('categoriaInput').style.display = 'block';
+        } else {
+            const prestamoColor = isDark ? '#f8fafc' : '#334155';
+            btn.style.background = prestamoColor;
+            btn.style.color = isDark ? '#0f172a' : 'white';
+            btn.style.boxShadow = isDark ? '0 10px 20px rgba(255, 255, 255, 0.1)' : '0 10px 20px rgba(51, 65, 85, 0.25)';
+            document.getElementById('categoriaInput').style.display = 'none'; // Ocultar categoría en préstamos
+        }
+        
+        toggleInputs(); 
+    }
 
-      try {
-        const response = await fetch(`${API}/api/cuentas`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ nombre, monto })
+    function toggleInputs() {
+        const modo = document.getElementById("modoUsuario").value;
+        document.getElementById("nombreNuevo").style.display = (modo === "NEW") ? "block" : "none";
+        document.getElementById("listaCuentas").style.display = (modo === "EXISTING") ? "block" : "none";
+        
+        const opcTrans = document.getElementById("opcionTransferencia");
+        const lblTrans = document.getElementById("labelTransferencia");
+        
+        if (categoriaSeleccionada === "Ingreso") {
+            opcTrans.style.display = "none";
+            document.getElementById("checkTransferencia").checked = false;
+            toggleTransferencia();
+        } else {
+            opcTrans.style.display = "flex";
+            if(categoriaSeleccionada === "Préstamo") {
+                lblTrans.innerText = "💳 Descontar dinero prestado de otra cuenta (Ej. Nómina)";
+            } else {
+                lblTrans.innerText = "💳 Pagar este gasto usando otra cuenta (Ej. Nómina)";
+            }
+        }
+    }
+
+    function toggleTransferencia() {
+        const check = document.getElementById("checkTransferencia").checked;
+        document.getElementById("cuentaOrigen").style.display = check ? "block" : "none";
+    }
+
+    function toggleHistorial(id) {
+        const fila = document.getElementById(`detalles-${id}`);
+        fila.classList.toggle('abierto');
+    }
+
+    async function cargar() {
+        try {
+            // NOTA: Se agrega el HEADER de autorización con el token en cada petición.
+            const res = await fetch(`${API}/cuentas`, { headers: { 'Authorization': `Bearer ${token}` } });
+            
+            // Si el token es inválido o expiró, te saca de la app
+            if (res.status === 401 || res.status === 403) return handleLogout();
+
+            let cuentas = await res.json();
+            
+            if (!Array.isArray(cuentas)) throw new Error("Respuesta no válida del servidor");
+            
+            cuentas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+            
+            const lista = document.getElementById("listaCuentas");
+            const listaOrigen = document.getElementById("cuentaOrigen");
+            lista.innerHTML = '<option value="">-- Elige un registro --</option>';
+            listaOrigen.innerHTML = '<option value="">-- Elige la cuenta de origen --</option>';
+            
+            cuentas.forEach(u => {
+                lista.innerHTML += `<option value="${u.id}">${u.nombre}</option>`;
+                listaOrigen.innerHTML += `<option value="${u.id}">${u.nombre}</option>`;
+            });
+
+            const cuerpo = document.getElementById("cuerpoTabla");
+            cuerpo.innerHTML = "";
+
+            let totalIngresosMes = 0, totalGastosMes = 0, totalDeuda = 0;
+            const mesActual = new Date().getMonth();
+            const anioActual = new Date().getFullYear();
+
+            for (const u of cuentas) {
+                const resHist = await fetch(`${API}/cuentas/${u.id}/historial`, { headers: { 'Authorization': `Bearer ${token}` } });
+                let dataHist = await resHist.json();
+                
+                if(!dataHist || !dataHist.transacciones) continue;
+
+                const transacciones = dataHist.transacciones.sort((a, b) => b.id - a.id);
+                const ultimaTx = transacciones[0]; 
+                
+                const esPrestamoHistorial = transacciones.some(t => t.tipo === "Préstamo" && (!t.concepto || !t.concepto.includes("[Préstamo Otorgado]")));
+                
+                let claseColor = "txt-ingreso"; 
+
+                if (u.monto === 0) {
+                    claseColor = "txt-ingreso"; 
+                } else if (esPrestamoHistorial) {
+                    claseColor = "txt-prestamo"; 
+                    totalDeuda += Math.abs(u.monto); 
+                } else if (ultimaTx) {
+                    const esDescuento = ultimaTx.concepto && (ultimaTx.concepto.includes("[Pago de Gasto]") || ultimaTx.concepto.includes("[Préstamo Otorgado]"));
+                    
+                    if (ultimaTx.tipo === "Gasto" && !esDescuento) {
+                        claseColor = "txt-gasto"; 
+                    } else {
+                        claseColor = "txt-ingreso"; 
+                    }
+                }
+
+                let filasInternas = "";
+
+                transacciones.forEach(t => {
+                    const fechaTx = new Date(t.fecha);
+                    const mesTag = fechaTx.toISOString().substring(0, 7);
+                    
+                    if (fechaTx.getMonth() === mesActual && fechaTx.getFullYear() === anioActual) {
+                        const esDescuentoGasto = t.concepto && t.concepto.includes("[Pago de Gasto]");
+                        const esOtorgamientoPrestamo = t.concepto && t.concepto.includes("[Préstamo Otorgado]");
+                        const esDevolucionCapital = t.concepto && t.concepto.includes("[Capital Devuelto]");
+
+                        if (t.tipo === "Gasto" && !esDescuentoGasto && !esOtorgamientoPrestamo) {
+                            totalGastosMes += t.monto;
+                        }
+                        
+                        if ((t.tipo === "Ingreso" || t.tipo === "Abono")) {
+                            if (!esPrestamoHistorial && !esDevolucionCapital) {
+                                totalIngresosMes += t.monto; 
+                            }
+                        }
+                    }
+
+                    let tipoEtiqueta = t.tipo;
+                    if (esPrestamoHistorial) {
+                        if (t.tipo === "Gasto" || t.tipo === "Préstamo") tipoEtiqueta = "Préstamo";
+                        if (t.tipo === "Ingreso" || t.tipo === "Abono") tipoEtiqueta = "Abono";
+                    }
+                    if (t.concepto && t.concepto.includes("[Préstamo Otorgado]")) {
+                        tipoEtiqueta = "Préstamo"; 
+                    }
+
+                    filasInternas += `
+                        <tr class="inner-tx" data-mes="${mesTag}">
+                            <td data-label="Fecha" style="color:var(--text-muted)">${fechaTx.toLocaleDateString()}</td>
+                            <td data-label="Tipo"><strong style="color:var(--text-main)">${tipoEtiqueta}</strong></td>
+                            <td data-label="Monto" style="font-weight:600">$${t.monto.toLocaleString()}</td>
+                            <td data-label="Concepto" style="color:var(--text-muted)">${t.concepto || "-"}</td>
+                        </tr>
+                    `;
+                });
+
+                cuerpo.innerHTML += `
+                    <tr class="fila-registro" data-id="${u.id}">
+                        <td data-label="Registro" class="nombre-celda">
+                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:2px;">ID #${u.id}</div>
+                            <strong>${u.nombre}</strong>
+                        </td>
+                        <td data-label="Estado" class="${claseColor}">$${Math.abs(u.monto).toLocaleString()}</td>
+                        <td data-label="Acciones" class="acciones-cell">
+                            <button class="btn-mini" style="background:var(--primario)" onclick="toggleHistorial(${u.id})" title="Ver detalles">👁️</button>
+                            <button class="btn-mini" style="background:#0ea5e9" onclick="generarPDF(${u.id})" title="Descargar PDF">📄</button>
+                            <button class="btn-mini" style="background:#10b981" onclick="generarCSV(${u.id})" title="Exportar Excel">📗</button>
+                            <button class="btn-mini" style="background:#f59e0b" onclick="editar(${u.id},'${u.nombre}')" title="Editar Nombre">✏️</button>
+                            <button class="btn-mini" style="background:#ef4444" onclick="eliminar(${u.id})" title="Eliminar Todo">🗑️</button>
+                        </td>
+                    </tr>
+                    <tr class="fila-detalles" id="detalles-${u.id}">
+                        <td colspan="3" style="padding: 0; border: none;">
+                            <div class="detalle-container">
+                                <table class="tabla-interior">
+                                    <thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Concepto</th></tr></thead>
+                                    <tbody>${filasInternas || '<tr><td colspan="4" style="text-align:center;">Sin movimientos</td></tr>'}</tbody>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            filtrarTabla();
+            actualizarDashboard(totalIngresosMes, totalGastosMes, totalDeuda);
+        } catch(e) { 
+            console.error("Error al cargar datos:", e); 
+            toast("Error al cargar la tabla", colorGasto);
+        }
+    }
+
+    function actualizarDashboard(ingresos, gastos, deuda) {
+        animarContador('dashIngresos', ingresos);
+        animarContador('dashGastos', gastos);
+        animarContador('dashDeuda', deuda);
+
+        const ctx = document.getElementById('miGrafico').getContext('2d');
+        if (miGrafico) miGrafico.destroy(); 
+        if (ingresos === 0 && gastos === 0 && deuda === 0) return; 
+
+        const isDark = document.body.classList.contains('dark-mode');
+        const colorDeuda = isDark ? '#f8fafc' : '#334155';
+        const colorTexto = isDark ? '#cbd5e1' : '#64748b';
+        const colorBorde = isDark ? 'transparent' : '#ffffff';
+
+        miGrafico = new Chart(ctx, {
+            type: 'doughnut', 
+            data: {
+                labels: ['Ingresos (Mes)', 'Gastos (Mes)', 'Deuda Pendiente'],
+                datasets: [{ 
+                    data: [ingresos, gastos, deuda], 
+                    backgroundColor: [colorIngreso, colorGasto, colorDeuda], 
+                    borderWidth: isDark ? 0 : 3, 
+                    borderColor: colorBorde, hoverOffset: 4
+                }]
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false, cutout: '75%',
+                plugins: { legend: { position: 'right', labels: { color: colorTexto, font: { family: 'Inter', size: 12 } } } } 
+            }
+        });
+    }
+
+    function filtrarTabla() {
+        const texto = document.getElementById("buscador").value.toLowerCase();
+        const mesSeleccionado = document.getElementById("filtroMes").value; 
+
+        document.querySelectorAll(".fila-registro").forEach(fila => {
+            const id = fila.getAttribute("data-id");
+            const nombre = fila.querySelector(".nombre-celda strong").innerText.toLowerCase();
+            const filaDetalle = document.getElementById(`detalles-${id}`);
+            
+            let coincideTexto = nombre.includes(texto);
+            let tieneMovimientoEnMes = false;
+
+            if (filaDetalle) {
+                const transacciones = filaDetalle.querySelectorAll(".inner-tx");
+                transacciones.forEach(tx => {
+                    if (!mesSeleccionado || tx.getAttribute("data-mes") === mesSeleccionado) {
+                        tx.style.display = ""; tieneMovimientoEnMes = true;
+                    } else { tx.style.display = "none"; }
+                });
+            }
+
+            if (coincideTexto && (!mesSeleccionado || tieneMovimientoEnMes)) { fila.style.display = ""; } 
+            else { fila.style.display = "none"; if(filaDetalle) filaDetalle.classList.remove("abierto"); }
+        });
+    }
+
+    async function procesar() {
+        const btn = document.getElementById("btnProcesar");
+        const modo = document.getElementById("modoUsuario").value;
+        const montoCrudo = document.getElementById("montoInput").value.replace(/[^0-9.]/g, '');
+        const monto = parseFloat(montoCrudo);
+        const fecha = document.getElementById("fechaInput").value;
+        const categoria = document.getElementById("categoriaInput").value;
+        const conceptoCrudo = document.getElementById("conceptoInput").value;
+        
+        const esRecurrente = document.getElementById("checkRecurrente").checked;
+        const usarTransferencia = document.getElementById("checkTransferencia").checked;
+        const idOrigen = document.getElementById("cuentaOrigen").value;
+
+        let conceptoFinal = categoriaSeleccionada === "Préstamo" ? conceptoCrudo : (categoria !== "General" ? `[${categoria}] ${conceptoCrudo}`.trim() : conceptoCrudo);
+        if (esRecurrente) conceptoFinal += " 🔄 [Recurrente]";
+        
+        if (!monto || monto <= 0 || isNaN(monto)) return toast("Monto no válido", colorGasto);
+        if (usarTransferencia && !idOrigen && categoriaSeleccionada !== "Ingreso") return toast("Selecciona una cuenta de origen", colorGasto);
+
+        btn.disabled = true; btn.innerText = "Procesando...";
+
+        try {
+            let idUsuario;
+            let nombreDestino = "";
+            if (modo === "NEW") {
+                const nombre = document.getElementById("nombreNuevo").value;
+                if (!nombre) throw new Error("Escribe un nombre");
+                const res = await fetch(`${API}/cuentas`, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`}, 
+                    body: JSON.stringify({ nombre: nombre, monto: 0 }) 
+                });
+                const nuevo = await res.json();
+                idUsuario = nuevo.id;
+                nombreDestino = nuevo.nombre;
+            } else {
+                idUsuario = document.getElementById("listaCuentas").value;
+                if (!idUsuario) throw new Error("Selecciona un registro");
+                const selectElem = document.getElementById("listaCuentas");
+                nombreDestino = selectElem.options[selectElem.selectedIndex].text;
+            }
+
+            const bodyMov = {
+                cuentaId: Number(idUsuario), tipo: categoriaSeleccionada, monto: monto, concepto: conceptoFinal,
+                fecha: fecha ? new Date(fecha + "T12:00:00").toISOString() : new Date().toISOString()
+            };
+            await fetch(`${API}/movimientos`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`}, 
+                body: JSON.stringify(bodyMov) 
+            });
+
+            if (usarTransferencia && idOrigen && categoriaSeleccionada !== "Ingreso") {
+                let tipoSecundario = "Gasto"; 
+                let conceptoTransferencia = "";
+                
+                if (categoriaSeleccionada === "Préstamo") {
+                    conceptoTransferencia = `[Préstamo Otorgado] Dinero prestado a ${nombreDestino}`;
+                } else {
+                    conceptoTransferencia = `[Pago de Gasto] Pago a ${nombreDestino}`;
+                }
+
+                const bodyTransfer = {
+                    cuentaId: Number(idOrigen), tipo: tipoSecundario, monto: monto, 
+                    concepto: conceptoTransferencia,
+                    fecha: fecha ? new Date(fecha + "T12:00:00").toISOString() : new Date().toISOString()
+                };
+                await fetch(`${API}/movimientos`, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`}, 
+                    body: JSON.stringify(bodyTransfer) 
+                });
+            }
+
+            if (categoriaSeleccionada === "Ingreso") {
+                const resHistUsuario = await fetch(`${API}/cuentas/${idUsuario}/historial`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const dataHistUsuario = await resHistUsuario.json();
+                
+                const isLoan = dataHistUsuario.transacciones && dataHistUsuario.transacciones.some(t => t.tipo === "Préstamo" && (!t.concepto || !t.concepto.includes("[Préstamo Otorgado]")));
+                
+                if (isLoan) {
+                    const { value: cuentaDevolucion } = await Swal.fire({
+                        title: '¿A qué cuenta devuelves este capital?',
+                        text: `Si le prestaste a ${nombreDestino} desde otra cuenta, elige a cuál regresar el dinero. Si es pago en efectivo, dale a Cancelar.`,
+                        input: 'select',
+                        inputOptions: Array.from(document.getElementById('cuentaOrigen').options).reduce((obj, item) => {
+                            if(item.value) obj[item.value] = item.text;
+                            return obj;
+                        }, {}),
+                        inputPlaceholder: 'Elige una cuenta para regresar el dinero',
+                        background: getSwalBg(), color: getSwalColor(),
+                        showCancelButton: true,
+                        confirmButtonText: 'Devolver fondos',
+                        cancelButtonText: 'Dejar como efectivo (Cancelar)',
+                        customClass: { input: 'custom-swal-select' }
+                    });
+                    
+                    if (cuentaDevolucion) {
+                        const bodyDevolucion = {
+                            cuentaId: Number(cuentaDevolucion), tipo: "Ingreso", monto: monto, 
+                            concepto: `[Capital Devuelto] Abono de ${nombreDestino}`,
+                            fecha: fecha ? new Date(fecha + "T12:00:00").toISOString() : new Date().toISOString()
+                        };
+                        await fetch(`${API}/movimientos`, { 
+                            method: 'POST', 
+                            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`}, 
+                            body: JSON.stringify(bodyDevolucion) 
+                        });
+                    }
+                }
+            }
+
+            toast("¡Registro exitoso!", (categoriaSeleccionada === 'Ingreso' ? colorIngreso : categoriaSeleccionada === 'Gasto' ? colorGasto : '#334155'));
+            
+            document.getElementById("montoInput").value = ""; document.getElementById("conceptoInput").value = ""; 
+            document.getElementById("nombreNuevo").value = ""; document.getElementById("checkRecurrente").checked = false; 
+            document.getElementById("checkTransferencia").checked = false; toggleTransferencia();
+            document.getElementById("fechaInput").value = new Date().toISOString().split('T')[0];
+            
+            cerrarModal(); 
+            cargar();
+        } catch (e) { toast(e.message || "Error", colorGasto); } finally { btn.disabled = false; btn.innerText = "Guardar Movimiento"; }
+    }
+
+    async function eliminar(id) {
+        const result = await Swal.fire({ 
+            title: '¿Eliminar registro?', text: "Se eliminará la cuenta y su historial.", icon: 'warning', 
+            background: getSwalBg(), color: getSwalColor(), showCancelButton: true, confirmButtonColor: colorGasto, 
+            cancelButtonColor: '#64748b', confirmButtonText: '🗑️ Sí, eliminar', cancelButtonText: 'Cancelar'
+        });
+        if(result.isConfirmed) { 
+            await fetch(`${API}/cuentas/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); 
+            cargar(); toast("Eliminado", colorGasto); 
+        }
+    }
+
+    async function editar(id, actual) {
+        const { value: nuevo } = await Swal.fire({ 
+            title: 'Editar Nombre', input: 'text', inputValue: actual, 
+            background: getSwalBg(), color: getSwalColor(), showCancelButton: true, confirmButtonColor: '#6366f1', 
+            cancelButtonColor: '#64748b', confirmButtonText: '💾 Guardar', cancelButtonText: 'Cancelar',
+            inputValidator: (value) => { if (!value) return '¡No puede estar vacío!' } 
+        });
+        if (nuevo) { 
+            await fetch(`${API}/cuentas/${id}`, { 
+                method: 'PUT', headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`}, 
+                body: JSON.stringify({ nombre: nuevo }) 
+            }); 
+            cargar(); toast("Actualizado", colorIngreso); 
+        }
+    }
+
+    async function generarCSV(id) {
+        const res = await fetch(`${API}/cuentas/${id}/historial`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        const esPrestamo = data.transacciones && data.transacciones.some(t => t.tipo === "Préstamo" && (!t.concepto || !t.concepto.includes("[Préstamo Otorgado]")));
+
+        let csvContent = "Fecha,Tipo,Monto,Concepto\n";
+
+        if(data.transacciones) {
+            data.transacciones.forEach(t => {
+                let tipoEtiqueta = t.tipo;
+                if (esPrestamo) {
+                    if (t.tipo === "Gasto" || t.tipo === "Préstamo") tipoEtiqueta = "Préstamo";
+                    if (t.tipo === "Ingreso" || t.tipo === "Abono") tipoEtiqueta = "Abono";
+                }
+                if (t.concepto && t.concepto.includes("[Préstamo Otorgado]")) tipoEtiqueta = "Préstamo";
+                
+                const conceptoLimpio = (t.concepto || "-").replace(/,/g, " "); 
+                const fecha = new Date(t.fecha).toLocaleDateString();
+                csvContent += `${fecha},${tipoEtiqueta},${t.monto},${conceptoLimpio}\n`;
+            });
+        }
+
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url); link.setAttribute("download", `Historial_${data.nombre}.csv`);
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    async function generarPDF(id) {
+        const res = await fetch(`${API}/cuentas/${id}/historial`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if(!data || !data.transacciones) return toast("No hay historial", colorGasto);
+
+        const esPrestamo = data.transacciones.some(t => t.tipo === "Préstamo" && (!t.concepto || !t.concepto.includes("[Préstamo Otorgado]")));
+
+        const deudaInicial = data.transacciones.filter(t => t.tipo === "Préstamo" || t.tipo === "Gasto").reduce((acc, t) => acc + t.monto, 0);
+        const totalAbonos = data.transacciones.filter(t => t.tipo === "Abono" || t.tipo === "Ingreso").reduce((acc, t) => acc + t.monto, 0);
+
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        
+        doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.text("Estado de Cuenta", 14, 20); 
+        doc.setFont("helvetica", "normal"); doc.setFontSize(16); doc.text(`Registro: ${data.nombre}`, 14, 30);
+        
+        const saldoFinal = Math.abs(deudaInicial - totalAbonos); doc.setFontSize(12);
+        
+        if (esPrestamo) {
+            doc.text(`Total Prestado: $${deudaInicial.toLocaleString()}`, 14, 45); doc.text(`Abonos Realizados: $${totalAbonos.toLocaleString()}`, 14, 52);
+            if (saldoFinal === 0 || (deudaInicial - totalAbonos) <= 0) { doc.setTextColor(16, 185, 129); doc.setFont("helvetica", "bold"); doc.text(`ESTADO: ¡Préstamo Pagado!`, 14, 62); } else { doc.setTextColor(244, 63, 94); doc.setFont("helvetica", "bold"); doc.text(`Balance Pendiente: $${saldoFinal.toLocaleString()}`, 14, 62); }
+        } else {
+            doc.text(`Cargos / Gastos: $${deudaInicial.toLocaleString()}`, 14, 45); doc.text(`Abonos / Ingresos: $${totalAbonos.toLocaleString()}`, 14, 52);
+            doc.setTextColor(244, 63, 94); doc.setFont("helvetica", "bold"); doc.text(`Balance Final: $${saldoFinal.toLocaleString()}`, 14, 62);
+        }
+        
+        doc.setTextColor(0, 0, 0); doc.setFont("helvetica", "normal");
+        const tablaDatos = data.transacciones.map(t => {
+            let tipoEtiqueta = t.tipo;
+            if (esPrestamo) { if (t.tipo === "Gasto" || t.tipo === "Préstamo") tipoEtiqueta = "Préstamo"; if (t.tipo === "Ingreso" || t.tipo === "Abono") tipoEtiqueta = "Abono"; }
+            if (t.concepto && t.concepto.includes("[Préstamo Otorgado]")) tipoEtiqueta = "Préstamo";
+            return [ tipoEtiqueta, `$${t.monto.toLocaleString()}`, new Date(t.fecha).toLocaleDateString(), t.concepto || "-" ];
         });
 
-        if (!response.ok) throw new Error('Error al crear la cuenta');
-
-        toggleModal('modal-cuenta', false);
-        document.getElementById('cuenta-nombre').value = "";
-        document.getElementById('cuenta-monto').value = "";
-        fetchData();
-      } catch (error) {
-        alert(error.message);
-      }
+        doc.autoTable({ startY: 70, head: [['Tipo', 'Monto', 'Fecha', 'Concepto']], body: tablaDatos, headStyles: { fillColor: [99, 102, 241] } });
+        doc.save(`Estado_Cuenta_${data.nombre}.pdf`);
     }
-
-    async function createTransaccion(e) {
-      e.preventDefault();
-      const cuentaId = document.getElementById('trans-cuentaId').value;
-      const tipo = document.querySelector('input[name="tipo"]:checked').value;
-      const monto = document.getElementById('trans-monto').value;
-      const concepto = document.getElementById('trans-concepto').value;
-
-      try {
-        const response = await fetch(`${API}/api/transacciones`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ cuentaId, tipo, monto, concepto })
-        });
-
-        if (!response.ok) throw new Error('Error al registrar movimiento');
-
-        toggleModal('modal-transaccion', false);
-        document.getElementById('trans-monto').value = "";
-        document.getElementById('trans-concepto').value = "";
-        fetchData();
-      } catch (error) {
-        alert(error.message);
-      }
-    }
-
-    async function deleteTransaccion(id) {
-      if (!confirm('¿Seguro que deseas eliminar este movimiento? El saldo de la cuenta se ajustará automáticamente.')) return;
-
-      try {
-        const response = await fetch(`${API}/api/transacciones/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!response.ok) throw new Error('Error al eliminar');
-
-        fetchData();
-      } catch (error) {
-        alert(error.message);
-      }
-    }
-
-    // --- VENTANAS MODALES ---
-    function toggleModal(id, show) {
-      const modal = document.getElementById(id);
-      if (show) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      } else {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-  </script>
+</script>
 </body>
 </html>
