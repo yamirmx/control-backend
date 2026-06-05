@@ -154,6 +154,25 @@ app.get('/cuentas', authenticateToken, async (req: AuthRequest, res: Response): 
   }
 });
 
+// NUEVO: Obtener Dashboard completo (Cuentas + Historial consolidado en 1 petición)
+app.get('/dashboard', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const cuentas = await prisma.cuenta.findMany({
+      where: { userId },
+      include: {
+        transacciones: {
+          orderBy: { fecha: 'desc' }
+        }
+      }
+    });
+    res.json(cuentas);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener el dashboard.' });
+  }
+});
+
 // Obtener UNA cuenta específica con su historial (Exclusivo del usuario)
 app.get('/cuentas/:id/historial', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
