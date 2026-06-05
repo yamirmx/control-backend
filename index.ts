@@ -1,13 +1,22 @@
-// 1. MODIFICAR LA RUTA PRINCIPAL (ejemplo /dashboard o /cuentas)
-app.get('/dashboard', async (req, res) => {
-  // ... tu código que verifica el token (si tienes auth)
+import express, { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import cors from 'cors';
+
+const prisma = new PrismaClient();
+const app = express();
+
+app.use(cors()); 
+app.use(express.json());
+
+// 1. CARGAR DASHBOARD (Con Paginación inicial de 10)
+app.get('/dashboard', async (req: Request, res: Response) => {
   try {
     const cuentas = await prisma.cuenta.findMany({
       orderBy: { nombre: 'asc' },
       include: { 
         transacciones: { 
           orderBy: { fecha: 'desc' },
-          take: 10 // <-- ESTA LÍNEA ES NUEVA. Limita la primera carga a 10.
+          take: 10 // Solo carga los 10 más recientes
         } 
       }
     });
@@ -17,9 +26,23 @@ app.get('/dashboard', async (req, res) => {
   }
 });
 
-// 2. AGREGAR ESTA RUTA NUEVA COMPLETAMENTE
-// React llamará aquí cuando presiones "Cargar más"
-app.get('/api/cuentas/:id/transacciones', async (req, res) => {
+// (Respaldo por si React llama a /cuentas en algún momento)
+app.get('/cuentas', async (req: Request, res: Response) => {
+  try {
+    const cuentas = await prisma.cuenta.findMany({
+      orderBy: { nombre: 'asc' },
+      include: { 
+        transacciones: { orderBy: { fecha: 'desc' }, take: 10 } 
+      }
+    });
+    res.json(cuentas);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 2. CARGAR MÁS TRANSACCIONES (Botón Paginación)
+app.get('/api/cuentas/:id/transacciones', async (req: Request, res: Response) => {
   const { id } = req.params;
   const skip = Number(req.query.skip) || 0; 
   const take = 10; 
@@ -31,9 +54,102 @@ app.get('/api/cuentas/:id/transacciones', async (req, res) => {
       skip: skip,
       take: take
     });
-
     res.json(nuevasTransacciones);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
+
+// 3. CREAR CUENTA
+app.post('/cuentas', async (req: Request, res: Response) => {
+  const { nombre, monto } = req.body;
+  try {
+    const nuevaCuenta = await prisma.cuenta.create({
+      data: { nombre, monto: Number(monto) }
+    });
+    res.status(201).json(nuevaCuenta);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 4. REGISTRAR MOVIMIENTO 
+app.post('/movimientos', async (req: Request, res: Response): Promise<any> => {
+  const { cuentaId, tipo, monto, concepto, fecha } = req.body; 
+  const valor = Number(monto);
+
+  try {
+    const cuenta = await prisma.cuenta.findUnique({ where: { id: Number(cuentaId) } });
+    if (!cuenta) return res.status(404).json({ error: "Cuenta no encontrada" });
+
+    let nuevoSaldo = cuenta.monto;
+    
+    const aumenta = ["Préstamo", "Gasto", "Pago de servicio"].includes(tipo);
+    const disminuye = ["Ingreso", "Abono", "Adelanto", "Pago de nómina"].includes(tipo);
+
+    if (aumenta) {
+      nuevoSaldo += valor;
+    } else if (disminuye) {
+      nuevoSaldo -= valor;
+    }
+
+    const datosTransaccion: any = { tipo, monto: valor, cuentaId: Number(cuentaId) };
+    if (concepto) datosTransaccion.concepto = concepto;
+    if (fecha) datosTransaccion.fecha = new Date(fecha); 
+
+    const resultado = await prisma.$transaction([
+      prisma.transaccion.create({ data: datosTransaccion }),
+      prisma.cuenta.update({
+        where: { id: Number(cuentaId) },
+        data: { monto: nuevoSaldo }
+      })
+    ]);
+
+    res.json(resultado);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 5. HISTORIAL COMPLETO PARA PDF/CSV
+app.get('/cuentas/:id/historial', async (req: Request, res: Response): Promise<any> => {
+  const { id } = req.params;
+  try {
+    const cuenta = await prisma.cuenta.findUnique({
+      where: { id: Number(id) },
+      include: { transacciones: { orderBy: { fecha: 'desc' } } } // Aquí sí traemos todas para el PDF
+    });
+    if (!cuenta) return res.status(404).json({ error: "No encontrado" });
+    res.json(cuenta);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 6. EDITAR NOMBRE
+app.put('/cuentas/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { nombre } = req.body;
+  try {
+    const editado = await prisma.cuenta.update({ where: { id: Number(id) }, data: { nombre } });
+    res.json(editado);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 7. ELIMINAR REGISTRO
+app.delete('/cuentas/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    await prisma.transaccion.deleteMany({ where: { cuentaId: Number(id) } });
+    await prisma.cuenta.delete({ where: { id: Number(id) } });
+    res.json({ message: "Eliminado" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// INICIO DEL SERVIDOR
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`🚀 Backend corriendo en el puerto ${PORT}`));
