@@ -491,7 +491,6 @@
         btn.disabled = true;
         btn.innerText = "Procesando...";
 
-        // Usaremos las nuevas rutas preparadas para tu index.ts
         const endpoint = isRegisterMode ? '/api/auth/signup' : '/api/auth/login';
 
         try {
@@ -577,7 +576,8 @@
         let valorActual = valorActualAttr ? parseFloat(valorActualAttr) : 0;
         
         if(valorActual === valorFinal) {
-            elemento.innerText = `$${valorFinal.toLocaleString()}`;
+            // AQUÍ FORZAMOS EL 'en-US' PARA LAS COMAS
+            elemento.innerText = `$${valorFinal.toLocaleString('en-US')}`;
             return;
         }
 
@@ -593,7 +593,8 @@
                 clearInterval(timer);
                 valorActual = valorFinal;
             }
-            elemento.innerText = `$${Math.round(valorActual).toLocaleString()}`;
+            // AQUÍ TAMBIÉN FORZAMOS 'en-US'
+            elemento.innerText = `$${Math.round(valorActual).toLocaleString('en-US')}`;
         }, fotogramas);
         
         elemento.setAttribute("data-val", valorFinal);
@@ -660,7 +661,6 @@
 
     async function cargar() {
         try {
-            // NOTA: Se agrega el HEADER de autorización con el token en cada petición.
             const res = await fetch(`${API}/cuentas`, { headers: { 'Authorization': `Bearer ${token}` } });
             
             // Si el token es inválido o expiró, te saca de la app
@@ -682,19 +682,21 @@
                 listaOrigen.innerHTML += `<option value="${u.id}">${u.nombre}</option>`;
             });
 
-            const cuerpo = document.getElementById("cuerpoTabla");
-            cuerpo.innerHTML = "";
-
             let totalIngresosMes = 0, totalGastosMes = 0, totalDeuda = 0;
             const mesActual = new Date().getMonth();
             const anioActual = new Date().getFullYear();
 
-            for (const u of cuentas) {
-                const resHist = await fetch(`${API}/cuentas/${u.id}/historial`, { headers: { 'Authorization': `Bearer ${token}` } });
-                let dataHist = await resHist.json();
-                
+            // Guardaremos todo el HTML aquí primero para que no parpadee la tabla
+            let nuevoCuerpoHTML = ""; 
+
+            // Pedimos todas las transacciones al mismo tiempo para que sea rapidísimo
+            const promesas = cuentas.map(u => fetch(`${API}/cuentas/${u.id}/historial`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()));
+            const historiales = await Promise.all(promesas);
+
+            for (const dataHist of historiales) {
                 if(!dataHist || !dataHist.transacciones) continue;
 
+                const u = dataHist; 
                 const transacciones = dataHist.transacciones.sort((a, b) => b.id - a.id);
                 const ultimaTx = transacciones[0]; 
                 
@@ -748,23 +750,25 @@
                         tipoEtiqueta = "Préstamo"; 
                     }
 
+                    // APLICAMOS toLocaleString('en-US') AQUÍ
                     filasInternas += `
                         <tr class="inner-tx" data-mes="${mesTag}">
                             <td data-label="Fecha" style="color:var(--text-muted)">${fechaTx.toLocaleDateString()}</td>
                             <td data-label="Tipo"><strong style="color:var(--text-main)">${tipoEtiqueta}</strong></td>
-                            <td data-label="Monto" style="font-weight:600">$${t.monto.toLocaleString()}</td>
+                            <td data-label="Monto" style="font-weight:600">$${t.monto.toLocaleString('en-US')}</td>
                             <td data-label="Concepto" style="color:var(--text-muted)">${t.concepto || "-"}</td>
                         </tr>
                     `;
                 });
 
-                cuerpo.innerHTML += `
+                // APLICAMOS toLocaleString('en-US') AL SALDO ACTUAL AQUÍ
+                nuevoCuerpoHTML += `
                     <tr class="fila-registro" data-id="${u.id}">
                         <td data-label="Registro" class="nombre-celda">
                             <div style="font-size:12px; color:var(--text-muted); margin-bottom:2px;">ID #${u.id}</div>
                             <strong>${u.nombre}</strong>
                         </td>
-                        <td data-label="Estado" class="${claseColor}">$${Math.abs(u.monto).toLocaleString()}</td>
+                        <td data-label="Estado" class="${claseColor}">$${Math.abs(u.monto).toLocaleString('en-US')}</td>
                         <td data-label="Acciones" class="acciones-cell">
                             <button class="btn-mini" style="background:var(--primario)" onclick="toggleHistorial(${u.id})" title="Ver detalles">👁️</button>
                             <button class="btn-mini" style="background:#0ea5e9" onclick="generarPDF(${u.id})" title="Descargar PDF">📄</button>
@@ -785,6 +789,10 @@
                     </tr>
                 `;
             }
+            
+            // Inyectamos todo el HTML de golpe para que no haya parpadeo
+            document.getElementById("cuerpoTabla").innerHTML = nuevoCuerpoHTML;
+
             filtrarTabla();
             actualizarDashboard(totalIngresosMes, totalGastosMes, totalDeuda);
         } catch(e) { 
@@ -1050,11 +1058,11 @@
         const saldoFinal = Math.abs(deudaInicial - totalAbonos); doc.setFontSize(12);
         
         if (esPrestamo) {
-            doc.text(`Total Prestado: $${deudaInicial.toLocaleString()}`, 14, 45); doc.text(`Abonos Realizados: $${totalAbonos.toLocaleString()}`, 14, 52);
-            if (saldoFinal === 0 || (deudaInicial - totalAbonos) <= 0) { doc.setTextColor(16, 185, 129); doc.setFont("helvetica", "bold"); doc.text(`ESTADO: ¡Préstamo Pagado!`, 14, 62); } else { doc.setTextColor(244, 63, 94); doc.setFont("helvetica", "bold"); doc.text(`Balance Pendiente: $${saldoFinal.toLocaleString()}`, 14, 62); }
+            doc.text(`Total Prestado: $${deudaInicial.toLocaleString('en-US')}`, 14, 45); doc.text(`Abonos Realizados: $${totalAbonos.toLocaleString('en-US')}`, 14, 52);
+            if (saldoFinal === 0 || (deudaInicial - totalAbonos) <= 0) { doc.setTextColor(16, 185, 129); doc.setFont("helvetica", "bold"); doc.text(`ESTADO: ¡Préstamo Pagado!`, 14, 62); } else { doc.setTextColor(244, 63, 94); doc.setFont("helvetica", "bold"); doc.text(`Balance Pendiente: $${saldoFinal.toLocaleString('en-US')}`, 14, 62); }
         } else {
-            doc.text(`Cargos / Gastos: $${deudaInicial.toLocaleString()}`, 14, 45); doc.text(`Abonos / Ingresos: $${totalAbonos.toLocaleString()}`, 14, 52);
-            doc.setTextColor(244, 63, 94); doc.setFont("helvetica", "bold"); doc.text(`Balance Final: $${saldoFinal.toLocaleString()}`, 14, 62);
+            doc.text(`Cargos / Gastos: $${deudaInicial.toLocaleString('en-US')}`, 14, 45); doc.text(`Abonos / Ingresos: $${totalAbonos.toLocaleString('en-US')}`, 14, 52);
+            doc.setTextColor(244, 63, 94); doc.setFont("helvetica", "bold"); doc.text(`Balance Final: $${saldoFinal.toLocaleString('en-US')}`, 14, 62);
         }
         
         doc.setTextColor(0, 0, 0); doc.setFont("helvetica", "normal");
@@ -1062,7 +1070,7 @@
             let tipoEtiqueta = t.tipo;
             if (esPrestamo) { if (t.tipo === "Gasto" || t.tipo === "Préstamo") tipoEtiqueta = "Préstamo"; if (t.tipo === "Ingreso" || t.tipo === "Abono") tipoEtiqueta = "Abono"; }
             if (t.concepto && t.concepto.includes("[Préstamo Otorgado]")) tipoEtiqueta = "Préstamo";
-            return [ tipoEtiqueta, `$${t.monto.toLocaleString()}`, new Date(t.fecha).toLocaleDateString(), t.concepto || "-" ];
+            return [ tipoEtiqueta, `$${t.monto.toLocaleString('en-US')}`, new Date(t.fecha).toLocaleDateString(), t.concepto || "-" ];
         });
 
         doc.autoTable({ startY: 70, head: [['Tipo', 'Monto', 'Fecha', 'Concepto']], body: tablaDatos, headStyles: { fillColor: [99, 102, 241] } });
