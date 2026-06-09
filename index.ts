@@ -1,12 +1,32 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit'; // <- Nueva importación
 
 const prisma = new PrismaClient();
 const app = express();
 
 app.use(cors()); 
 app.use(express.json());
+
+// --- CONFIGURACIÓN DE RATE LIMITER ---
+// Máximo 5 intentos por IP cada 15 minutos
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos en milisegundos
+  max: 5, // Límite de 5 peticiones por IP
+  message: {
+    error: 'Demasiados intentos de inicio de sesión. Por favor, inténtalo de nuevo en 15 minutos.'
+  },
+  standardHeaders: true, // Devuelve la información del límite en los headers `RateLimit-*`
+  legacyHeaders: false, // Desactiva los headers antiguos `X-RateLimit-*`
+});
+
+// APLICAR EL LIMITADOR ÚNICAMENTE A LAS RUTAS CRÍTICAS
+// Protegerá estos endpoints contra bots de fuerza bruta
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
+// -------------------------------------
+
 
 // 1. CARGAR DASHBOARD (Con Paginación inicial de 10)
 app.get('/dashboard', async (req: Request, res: Response) => {
