@@ -7,13 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------------------------------------------------------
+// MODELO DE USUARIO (Centraliza todo)
+// ---------------------------------------------------------
 model User {
-  id       Int      @id @default(autoincrement())
-  email    String   @unique
-  password String
-  cuentas  Cuenta[]
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  password     String
+  cuentas      Cuenta[]
+  presupuestos Presupuesto[]
+  metasAhorro  MetaAhorro[]
 }
 
+// ---------------------------------------------------------
+// GESTIÓN FINANCIERA (Cuentas y Transacciones)
+// ---------------------------------------------------------
 model Cuenta {
   id            Int           @id @default(autoincrement())
   nombre        String
@@ -31,4 +39,25 @@ model Transaccion {
   concepto String?
   cuentaId Int
   cuenta   Cuenta   @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------
+// PLANIFICACIÓN (Presupuestos y Metas)
+// ---------------------------------------------------------
+model Presupuesto {
+  id        Int    @id @default(autoincrement())
+  categoria String // Ej: "Comida", "Transporte"
+  montoMax  Float  // Ej: 2000 (Límite mensual)
+  userId    Int
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MetaAhorro {
+  id           Int       @id @default(autoincrement())
+  nombre       String    // Ej: "Viaje a Cancún", "Laptop Nueva"
+  montoMeta    Float     // Ej: 15000
+  montoActual  Float     @default(0)
+  fechaLimite  DateTime?
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
