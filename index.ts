@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 const app = express();
@@ -24,12 +25,29 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/signup', authLimiter);
 
+// --- MIDDLEWARE DE AUTENTICACIÓN (El Cadenero) ---
+const verificarToken = (req: Request, res: Response, next: any) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: "Acceso denegado, no hay token." });
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decodificado: any = jwt.verify(token, process.env.JWT_SECRET || "super_secreto_para_desarrollo_local_123");
+    (req as any).userId = decodificado.id; 
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: "Token inválido o expirado." });
+  }
+};
+
 // --- 2. RUTAS DE CUENTAS Y DASHBOARD ---
 
-// Cargar Dashboard (Paginación inicial de 10)
-app.get('/dashboard', async (req: Request, res: Response) => {
+// Cargar Dashboard (Paginación inicial de 10 y filtro de privacidad)
+app.get('/dashboard', verificarToken, async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   try {
     const cuentas = await prisma.cuenta.findMany({
+      where: { userId: Number(userId) },
       orderBy: { nombre: 'asc' },
       include: { 
         transacciones: { 
@@ -44,9 +62,12 @@ app.get('/dashboard', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/cuentas', async (req: Request, res: Response) => {
+// Obtener todas las cuentas del usuario
+app.get('/cuentas', verificarToken, async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   try {
     const cuentas = await prisma.cuenta.findMany({
+      where: { userId: Number(userId) },
       orderBy: { nombre: 'asc' },
       include: { 
         transacciones: { orderBy: { fecha: 'desc' }, take: 10 } 
@@ -59,7 +80,7 @@ app.get('/cuentas', async (req: Request, res: Response) => {
 });
 
 // Cargar más transacciones (Paginación)
-app.get('/api/cuentas/:id/transacciones', async (req: Request, res: Response) => {
+app.get('/api/cuentas/:id/transacciones', verificarToken, async (req: Request, res: Response) => {
   const { id } = req.params;
   const skip = Number(req.query.skip) || 0; 
   const take = 10; 
@@ -77,12 +98,18 @@ app.get('/api/cuentas/:id/transacciones', async (req: Request, res: Response) =>
   }
 });
 
-// Crear Cuenta
-app.post('/cuentas', async (req: Request, res: Response) => {
+// Crear Cuenta asociada al usuario
+app.post('/cuentas', verificarToken, async (req: Request, res: Response) => {
   const { nombre, monto } = req.body;
+  const userId = (req as any).userId;
+
   try {
     const nuevaCuenta = await prisma.cuenta.create({
-      data: { nombre, monto: Number(monto) }
+      data: { 
+        nombre, 
+        monto: Number(monto),
+        userId: Number(userId)
+      }
     });
     res.status(201).json(nuevaCuenta);
   } catch (error: any) {
@@ -91,7 +118,7 @@ app.post('/cuentas', async (req: Request, res: Response) => {
 });
 
 // Editar nombre de cuenta
-app.put('/cuentas/:id', async (req: Request, res: Response) => {
+app.put('/cuentas/:id', verificarToken, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { nombre } = req.body;
   try {
@@ -103,7 +130,7 @@ app.put('/cuentas/:id', async (req: Request, res: Response) => {
 });
 
 // Eliminar Cuenta y sus transacciones
-app.delete('/cuentas/:id', async (req: Request, res: Response) => {
+app.delete('/cuentas/:id', verificarToken, async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     await prisma.transaccion.deleteMany({ where: { cuentaId: Number(id) } });
@@ -116,8 +143,8 @@ app.delete('/cuentas/:id', async (req: Request, res: Response) => {
 
 // --- 3. RUTAS DE MOVIMIENTOS Y TRANSACCIONES ---
 
-// Registrar Movimiento (Actualiza saldo de cuenta automáticamente)
-app.post('/movimientos', async (req: Request, res: Response): Promise<any> => {
+// Registrar Movimiento (Matemáticas corregidas)
+app.post('/movimientos', verificarToken, async (req: Request, res: Response): Promise<any> => {
   const { cuentaId, tipo, monto, concepto, fecha } = req.body; 
   const valor = Number(monto);
 
@@ -127,8 +154,9 @@ app.post('/movimientos', async (req: Request, res: Response): Promise<any> => {
 
     let nuevoSaldo = cuenta.monto;
     
-    const aumenta = ["Préstamo", "Gasto", "Pago de servicio"].includes(tipo);
-    const disminuye = ["Ingreso", "Abono", "Adelanto", "Pago de nómina"].includes(tipo);
+    // Ingresos suman, Gastos restan
+    const aumenta = ["Ingreso", "Abono", "Adelanto", "Pago de nómina"].includes(tipo);
+    const disminuye = ["Préstamo", "Gasto", "Pago de servicio", "Transferencia"].includes(tipo);
 
     if (aumenta) {
       nuevoSaldo += valor;
@@ -155,7 +183,7 @@ app.post('/movimientos', async (req: Request, res: Response): Promise<any> => {
 });
 
 // Historial completo para exportación (PDF/CSV)
-app.get('/cuentas/:id/historial', async (req: Request, res: Response): Promise<any> => {
+app.get('/cuentas/:id/historial', verificarToken, async (req: Request, res: Response): Promise<any> => {
   const { id } = req.params;
   try {
     const cuenta = await prisma.cuenta.findUnique({
@@ -171,7 +199,7 @@ app.get('/cuentas/:id/historial', async (req: Request, res: Response): Promise<a
 
 // --- 4. RUTAS DE PRESUPUESTOS ---
 
-app.get('/presupuestos/:userId', async (req: Request, res: Response) => {
+app.get('/presupuestos/:userId', verificarToken, async (req: Request, res: Response) => {
   const { userId } = req.params;
   try {
     const presupuestos = await prisma.presupuesto.findMany({
@@ -184,7 +212,7 @@ app.get('/presupuestos/:userId', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/presupuestos', async (req: Request, res: Response) => {
+app.post('/presupuestos', verificarToken, async (req: Request, res: Response) => {
   const { categoria, montoMax, userId } = req.body;
   try {
     const nuevoPresupuesto = await prisma.presupuesto.create({
@@ -202,7 +230,7 @@ app.post('/presupuestos', async (req: Request, res: Response) => {
 
 // --- 5. RUTAS DE METAS DE AHORRO ---
 
-app.get('/metas/:userId', async (req: Request, res: Response) => {
+app.get('/metas/:userId', verificarToken, async (req: Request, res: Response) => {
   const { userId } = req.params;
   try {
     const metas = await prisma.metaAhorro.findMany({
@@ -215,7 +243,7 @@ app.get('/metas/:userId', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/metas', async (req: Request, res: Response) => {
+app.post('/metas', verificarToken, async (req: Request, res: Response) => {
   const { nombre, montoMeta, montoActual, fechaLimite, userId } = req.body;
   try {
     const nuevaMeta = await prisma.metaAhorro.create({
