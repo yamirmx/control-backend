@@ -14,16 +14,16 @@ app.use(express.json());
 
 // --- 1. CONFIGURACIÓN DE SEGURIDAD (Rate Limiter) ---
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // Límite de 5 peticiones por IP
+  windowMs: 15 * 60 * 1000, 
+  max: 10, 
   message: {
-    error: 'Demasiados intentos de inicio de sesión. Por favor, inténtalo de nuevo en 15 minutos.'
+    error: 'Demasiados intentos. Por favor, inténtalo de nuevo más tarde.'
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// --- MIDDLEWARE DE AUTENTICACIÓN (El Cadenero) ---
+// --- MIDDLEWARE DE AUTENTICACIÓN ---
 const verificarToken = (req: Request, res: Response, next: any) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: "Acceso denegado, no hay token." });
@@ -34,39 +34,53 @@ const verificarToken = (req: Request, res: Response, next: any) => {
     (req as any).userId = decodificado.id; 
     next();
   } catch (error) {
-    return res.status(401).json({ error: "Token inválido o expirado." });
+    return res.status(401).json({ error: "Token inválido o expirado. Vuelve a iniciar sesión." });
   }
 };
 
-// --- 2. RUTAS DE AUTENTICACIÓN (LAS QUE HABÍA BORRADO) ---
+// --- 2. RUTAS DE AUTENTICACIÓN (CORREGIDAS A PRUEBA DE FALLOS) ---
 
 app.post('/api/auth/signup', authLimiter, async (req: Request, res: Response): Promise<any> => {
   const { email, password } = req.body;
   try {
+    // 1. Verificamos si el usuario ya existe usando findFirst (No hace explotar a Prisma)
+    const usuarioExistente = await prisma.user.findFirst({ where: { email } });
+    if (usuarioExistente) {
+      return res.status(400).json({ error: 'Este correo ya está registrado. Por favor, haz clic en "Inicia sesión".' });
+    }
+
+    // 2. Creamos el usuario
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: { email, password: hashedPassword }
     });
+
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || "super_secreto_para_desarrollo_local_123", { expiresIn: '7d' });
     res.status(201).json({ token, user: { id: user.id, email: user.email } });
   } catch (error: any) {
-    res.status(400).json({ error: 'El usuario ya existe o hubo un error en el registro.' });
+    // Si falla, te mandará el error real para saber exactamente qué fue
+    res.status(400).json({ error: 'Error del servidor al registrar: ' + error.message });
   }
 });
 
 app.post('/api/auth/login', authLimiter, async (req: Request, res: Response): Promise<any> => {
   const { email, password } = req.body;
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(400).json({ error: 'Usuario no encontrado' });
+    // Usamos findFirst en lugar de findUnique para evitar el error 500
+    const user = await prisma.user.findFirst({ where: { email } });
+    if (!user) {
+      return res.status(400).json({ error: 'Usuario no encontrado. Verifica tu correo.' });
+    }
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return res.status(400).json({ error: 'Contraseña incorrecta' });
+    if (!validPassword) {
+      return res.status(400).json({ error: 'Contraseña incorrecta.' });
+    }
 
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || "super_secreto_para_desarrollo_local_123", { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, email: user.email } });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Error del servidor al iniciar sesión: ' + error.message });
   }
 });
 
