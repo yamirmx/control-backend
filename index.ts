@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 const app = express();
@@ -22,10 +23,6 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Aplicar a rutas críticas
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/signup', authLimiter);
-
 // --- MIDDLEWARE DE AUTENTICACIÓN (El Cadenero) ---
 const verificarToken = (req: Request, res: Response, next: any) => {
   const authHeader = req.headers.authorization;
@@ -41,9 +38,40 @@ const verificarToken = (req: Request, res: Response, next: any) => {
   }
 };
 
-// --- 2. RUTAS DE CUENTAS Y DASHBOARD ---
+// --- 2. RUTAS DE AUTENTICACIÓN (LAS QUE HABÍA BORRADO) ---
 
-// Cargar Dashboard (Paginación inicial de 10 y filtro de privacidad)
+app.post('/api/auth/signup', authLimiter, async (req: Request, res: Response): Promise<any> => {
+  const { email, password } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: { email, password: hashedPassword }
+    });
+    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || "super_secreto_para_desarrollo_local_123", { expiresIn: '7d' });
+    res.status(201).json({ token, user: { id: user.id, email: user.email } });
+  } catch (error: any) {
+    res.status(400).json({ error: 'El usuario ya existe o hubo un error en el registro.' });
+  }
+});
+
+app.post('/api/auth/login', authLimiter, async (req: Request, res: Response): Promise<any> => {
+  const { email, password } = req.body;
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(400).json({ error: 'Usuario no encontrado' });
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) return res.status(400).json({ error: 'Contraseña incorrecta' });
+
+    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || "super_secreto_para_desarrollo_local_123", { expiresIn: '7d' });
+    res.json({ token, user: { id: user.id, email: user.email } });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- 3. RUTAS DE CUENTAS Y DASHBOARD ---
+
 app.get('/dashboard', verificarToken, async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   try {
@@ -63,7 +91,6 @@ app.get('/dashboard', verificarToken, async (req: Request, res: Response) => {
   }
 });
 
-// Obtener todas las cuentas del usuario
 app.get('/cuentas', verificarToken, async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   try {
@@ -80,7 +107,6 @@ app.get('/cuentas', verificarToken, async (req: Request, res: Response) => {
   }
 });
 
-// Cargar más transacciones (Paginación)
 app.get('/api/cuentas/:id/transacciones', verificarToken, async (req: Request, res: Response) => {
   const { id } = req.params;
   const skip = Number(req.query.skip) || 0; 
@@ -99,7 +125,6 @@ app.get('/api/cuentas/:id/transacciones', verificarToken, async (req: Request, r
   }
 });
 
-// Crear Cuenta asociada al usuario
 app.post('/cuentas', verificarToken, async (req: Request, res: Response) => {
   const { nombre, monto } = req.body;
   const userId = (req as any).userId;
@@ -118,7 +143,6 @@ app.post('/cuentas', verificarToken, async (req: Request, res: Response) => {
   }
 });
 
-// Editar nombre de cuenta
 app.put('/cuentas/:id', verificarToken, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { nombre } = req.body;
@@ -130,7 +154,6 @@ app.put('/cuentas/:id', verificarToken, async (req: Request, res: Response) => {
   }
 });
 
-// Eliminar Cuenta y sus transacciones
 app.delete('/cuentas/:id', verificarToken, async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
@@ -142,9 +165,8 @@ app.delete('/cuentas/:id', verificarToken, async (req: Request, res: Response) =
   }
 });
 
-// --- 3. RUTAS DE MOVIMIENTOS Y TRANSACCIONES ---
+// --- 4. RUTAS DE MOVIMIENTOS Y TRANSACCIONES ---
 
-// Registrar Movimiento (Matemáticas corregidas)
 app.post('/movimientos', verificarToken, async (req: Request, res: Response): Promise<any> => {
   const { cuentaId, tipo, monto, concepto, fecha } = req.body; 
   const valor = Number(monto);
@@ -155,7 +177,6 @@ app.post('/movimientos', verificarToken, async (req: Request, res: Response): Pr
 
     let nuevoSaldo = cuenta.monto;
     
-    // Ingresos suman, Gastos restan
     const aumenta = ["Ingreso", "Abono", "Adelanto", "Pago de nómina"].includes(tipo);
     const disminuye = ["Préstamo", "Gasto", "Pago de servicio", "Transferencia"].includes(tipo);
 
@@ -183,7 +204,6 @@ app.post('/movimientos', verificarToken, async (req: Request, res: Response): Pr
   }
 });
 
-// Historial completo para exportación (PDF/CSV)
 app.get('/cuentas/:id/historial', verificarToken, async (req: Request, res: Response): Promise<any> => {
   const { id } = req.params;
   try {
@@ -198,70 +218,6 @@ app.get('/cuentas/:id/historial', verificarToken, async (req: Request, res: Resp
   }
 });
 
-// --- 4. RUTAS DE PRESUPUESTOS ---
-
-app.get('/presupuestos/:userId', verificarToken, async (req: Request, res: Response) => {
-  const { userId } = req.params;
-  try {
-    const presupuestos = await prisma.presupuesto.findMany({
-      where: { userId: Number(userId) },
-      orderBy: { categoria: 'asc' }
-    });
-    res.json(presupuestos);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/presupuestos', verificarToken, async (req: Request, res: Response) => {
-  const { categoria, montoMax, userId } = req.body;
-  try {
-    const nuevoPresupuesto = await prisma.presupuesto.create({
-      data: { 
-        categoria, 
-        montoMax: Number(montoMax), 
-        userId: Number(userId) 
-      }
-    });
-    res.status(201).json(nuevoPresupuesto);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- 5. RUTAS DE METAS DE AHORRO ---
-
-app.get('/metas/:userId', verificarToken, async (req: Request, res: Response) => {
-  const { userId } = req.params;
-  try {
-    const metas = await prisma.metaAhorro.findMany({
-      where: { userId: Number(userId) },
-      orderBy: { fechaLimite: 'asc' }
-    });
-    res.json(metas);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/metas', verificarToken, async (req: Request, res: Response) => {
-  const { nombre, montoMeta, montoActual, fechaLimite, userId } = req.body;
-  try {
-    const nuevaMeta = await prisma.metaAhorro.create({
-      data: {
-        nombre,
-        montoMeta: Number(montoMeta),
-        montoActual: Number(montoActual || 0),
-        fechaLimite: fechaLimite ? new Date(fechaLimite) : null,
-        userId: Number(userId)
-      }
-    });
-    res.status(201).json(nuevaMeta);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- 6. INICIO DEL SERVIDOR ---
+// --- 5. INICIO DEL SERVIDOR ---
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`🚀 Backend corriendo en el puerto ${PORT}`));
